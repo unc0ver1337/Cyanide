@@ -5,6 +5,8 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 
 #import "QuickLoader.h"
+#import "experimental/chams_controller.h"
+#import "experimental/chams_window.h"
 #import "RepoTweaks.h"
 #import "remote_objc.h"
 #import "../TaskRop/RemoteCall.h"
@@ -250,6 +252,10 @@ bool quickloader_refresh_active_repo_tweak(void) {
 // Global variables for js daemon and kill switch
 // ==========================================
 static JSContext *g_quickloader_context = nil;
+// Experimental branch only. Keep an indeterminate controller alive rather
+// than implicitly destroying a RemoteCall while target work may still run.
+static CYChamsController *g_chams_controller = nil;
+static CYChamsWindow g_chams_window = {0};
 static NSMutableDictionary *g_quickloader_timers = nil;
 static int g_quickloader_timer_id = 0;
 
@@ -699,6 +705,32 @@ bool quickloader_run_js_string(NSString *jsCode) {
             return uint64_to_js(ptr);
         };
 
+        context[@"cy_chams_window_open"] = ^NSString *{
+            if (!quickloader_generation_is_active(runGeneration)) return uint64_to_js(0);
+            CYWindowStatus status=cy_chams_window_open(&g_chams_window);
+            return uint64_to_js(status==CY_WINDOW_OK ? g_chams_window.window : 0);
+        };
+        context[@"cy_chams_window_close"] = ^NSNumber *{
+            if (!quickloader_generation_is_active(runGeneration)) return @NO;
+            return @(cy_chams_window_close(&g_chams_window)==CY_WINDOW_OK);
+        };
+        context[@"cy_chams_set_enabled"] = ^NSNumber *(BOOL enabled) {
+            if (!quickloader_generation_is_active(runGeneration)) return @NO;
+            if (!g_chams_controller && enabled) g_chams_controller=[CYChamsController new];
+            return @(!g_chams_controller ? !enabled : [g_chams_controller setEnabled:enabled]);
+        };
+        context[@"cy_chams_refresh"] = ^NSNumber *{
+            if (!quickloader_generation_is_active(runGeneration) || !g_chams_controller) return @NO;
+            return @([g_chams_controller refresh]);
+        };
+        context[@"cy_chams_stop"] = ^NSNumber *{
+            if (!quickloader_generation_is_active(runGeneration)) return @NO;
+            if (!g_chams_controller) return @YES;
+            BOOL ok=[g_chams_controller stop];
+            if (ok) g_chams_controller=nil;
+            return @(ok);
+        };
+
         log_user("[JS Engine] Executing user script...\n");
         [context evaluateScript:jsCode];
         if (context.exception) {
@@ -723,10 +755,18 @@ bool quickloader_stop_in_session(void) {
     //Order timers to stop
     quickloader_set_shutting_down(YES);
     uint64_t stopGeneration = quickloader_current_generation();
+    __block bool chamsClean = true;
 
     bool stopped = quickloader_perform_sync_timeout(^{
         if (!quickloader_generation_is_current(stopGeneration)) return;
         log_user("[QuickLoader] Clean Up: Green light, safely stopping JS timer...\n");
+
+        if (g_chams_controller) {
+            chamsClean=[g_chams_controller stop];
+            if (chamsClean) g_chams_controller=nil;
+        }
+        if (chamsClean && g_chams_window.window)
+            chamsClean=cy_chams_window_close(&g_chams_window)==CY_WINDOW_OK;
 
         NSArray *sources = nil;
         pthread_mutex_lock(&g_quickloader_queue_lock);
@@ -734,12 +774,12 @@ bool quickloader_stop_in_session(void) {
         g_quickloader_context = nil;
         pthread_mutex_unlock(&g_quickloader_queue_lock);
         quickloader_cancel_timer_sources(sources);
-    }, 2 * NSEC_PER_SEC);
+    }, (g_chams_controller ? 120 : 2) * NSEC_PER_SEC);
 
     if (!stopped) {
         log_user("[QuickLoader] Clean Up timed out; the script may be stuck in a long-running loop.\n");
         quickloader_abandon_js_queue_after_timeout("cleanup timeout", YES);
     }
 
-    return stopped;
+    return stopped && chamsClean;
 }

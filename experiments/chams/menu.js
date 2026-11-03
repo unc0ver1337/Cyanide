@@ -1,14 +1,15 @@
-// EXPERIMENTAL SOURCE. Requires native cy_chams_set_enabled / cy_chams_stop.
-// Neither function is currently exposed; this file is not a working tweak.
+// EXPERIMENTAL: requires the matching Cyanide WIP branch and device testing.
 (function () {
     'use strict';
-    if (typeof cy_chams_set_enabled !== 'function' || typeof cy_chams_stop !== 'function') {
+    if (typeof cy_chams_set_enabled !== 'function' || typeof cy_chams_stop !== 'function' ||
+        typeof cy_chams_refresh !== 'function' || typeof cy_chams_window_open !== 'function' ||
+        typeof cy_chams_window_close !== 'function') {
         log('Chams backend unavailable; menu not started.');
         return;
     }
     var ROOT_TAG = 734931, MENU_TAG = 734932, ENABLE_TAG = 734933, TRIGGER_TAG = 734934;
     var timer = 0, root = '0x0', window = '0x0', owned = false, stopped = false;
-    var lastTrigger = true, lastEnabled = false;
+    var lastTrigger = true, lastEnabled = false, ticks = 0;
     function valid(p) { return p != null && !/^(?:0x)?0+$/i.test(String(p)); }
     function msg(o, s, a, b, c, d) { return r_msg2_main(o, s, a || 0, b || 0, c || 0, d || 0); }
     function object(name) {
@@ -33,9 +34,11 @@
             if (valid(current) && String(current) === String(root)) msg(current, 'removeFromSuperview');
         }
         if (owned) { msg(root, 'release'); owned = false; }
+        if (valid(window) && cy_chams_window_close() !== true) log('Menu window cleanup was not confirmed.');
+        window = '0x0';
     }
     try {
-        window = msg(msg(r_class('UIApplication'), 'sharedApplication'), 'keyWindow');
+        window = cy_chams_window_open();
         if (!valid(window)) throw new Error('SpringBoard window unavailable');
         var old = msg(window, 'viewWithTag:', ROOT_TAG);
         if (valid(old)) throw new Error('Existing menu: exit it before starting another');
@@ -88,6 +91,10 @@
                         stop(true); return;
                     }
                     lastEnabled = on;
+                }
+                if (on && ++ticks >= 20) {
+                    ticks = 0;
+                    if (cy_chams_refresh() !== true) { log('Chams refresh failed.'); stop(true); return; }
                 }
             } catch (e) { log('Menu error: ' + String(e)); stop(true); }
         }, 250);

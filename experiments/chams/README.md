@@ -1,7 +1,8 @@
 # Experimental Standoff2 chams work
 
-**Incomplete.** This branch does not provide a chams tweak, attach to the game,
-or expose a new QuickLoader API. Do not install it as a working chams build.
+**Incomplete and unverified.** This branch contains an experimental
+RemoteCall controller and QuickLoader bridge. No chams or menu behavior has
+been verified on an iPhone. Do not install it as a working chams build.
 
 The intended effect is red behind walls and green when visible, including hands.
 The material filter is derived from observed 1.1.0 game assets and includes
@@ -21,14 +22,10 @@ availability and visual behavior outside that mode have not been verified. The
 game's regular character shaders do not expose a configurable depth test.
 OutlineHW is an outline shader, and full model fill has not been established.
 
-The experimental menu implements the requested checkbox, center switch and
-Exit behavior against a mock backend. It intentionally refuses to start when
-the native bridge is missing. It uses a SpringBoard keyWindow, so visibility
-and touch handling above the game are not established.
-An isolated native floating-window prototype has been added, but it is not
-connected to the menu and has not been tested on a device.
+The experimental menu uses a SpringBoard window and a native bridge, with a
+mock backend test. Visibility and touch handling above the game have not been
+established, and actual RemoteCall behavior is untested on a device.
 
-The game adapter, verified game session, runtime object/material discovery,
-real reversible material changes, integrated SpringBoard window, teardown and
-device testing are still required. The host test exercises only the calling
-convention; it does not exercise Cyanide's RemoteCall or the game.
+The adapter, process identification, discovery, material changes, window and
+teardown are prototypes that need integration and device validation. The host
+tests do not exercise Cyanide's RemoteCall or the game.

@@ -35,6 +35,9 @@ function create(backend = true, failSet = false) {
     if (backend) {
         context.cy_chams_set_enabled = on => { calls.push(['set', on]); return !failSet; };
         context.cy_chams_stop = () => { calls.push(['stop']); return true; };
+        context.cy_chams_window_open = () => win;
+        context.cy_chams_window_close = () => true;
+        context.cy_chams_refresh = () => true;
     }
     vm.runInNewContext(source, context);
     const byTag = t => [...nodes.entries()].find(([p, n]) => n.tag === t);
