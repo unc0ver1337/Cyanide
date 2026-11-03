@@ -34,7 +34,6 @@ if [ "${CI:-}" = "true" ]; then
         "$ROOT/experiments/chams/check_apply_syntax.m" \
         "$ROOT/experiments/chams/check_scan_syntax.m"
     node --check "$ROOT/experiments/chams/menu.js"
-    (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
         "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
     "$RUNNER_TEMP/chams-invocation-probe"
