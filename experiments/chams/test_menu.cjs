@@ -51,7 +51,7 @@ assert.equal(absent.timers.size, 0);
 assert.equal(absent.nodes.get(absent.win).children.length, 0);
 
 const a = create();
-assert.equal(a.timers.size, 1);
+assert.equal(a.timers.size, 1, a.logs.join('\n') || 'menu timer did not start');
 assert.deepEqual([0,1,2,3,4,5,6].map(i => a.byTag(734940+i)[1].type), Array(7).fill('UISwitch'));
 let tick = [...a.timers.values()][0];
 a.byTag(734940)[1].on = true; tick();
