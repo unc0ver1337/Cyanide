@@ -52,6 +52,7 @@
 #import <os/lock.h>
 
 #import <objc/runtime.h>
+#import <objc/message.h>
 #import <objc/objc-sync.h>
 #import <sys/time.h>
 #import <sys/sysctl.h>
