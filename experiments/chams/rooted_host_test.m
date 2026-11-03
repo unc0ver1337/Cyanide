@@ -33,7 +33,12 @@ uint64_t r_session_class(RemoteCallSession *s, const char *name) {
     (void)s; lastOK = true; return (uint64_t)(uintptr_t)objc_getClass(name);
 }
 uint64_t r_session_sel(RemoteCallSession *s, const char *name) {
-    (void)s; lastOK = true; return (uint64_t)(uintptr_t)sel_registerName(name);
+    (void)s; lastOK = true;
+    SEL selector = sel_registerName(name);
+    uint64_t bits = 0;
+    _Static_assert(sizeof(selector) == sizeof(bits), "selector width mismatch");
+    memcpy(&bits, &selector, sizeof(bits));
+    return bits;
 }
 uint64_t r_session_msg2(RemoteCallSession *s, uint64_t target, const char *name,
                         uint64_t a, uint64_t b, uint64_t c, uint64_t d) {

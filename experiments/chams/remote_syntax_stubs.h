@@ -22,6 +22,12 @@ uint64_t r_session_dlsym_call(RemoteCallSession *, int, const char *, uint64_t, 
 bool r_last_call_ok(void);
 bool r_last_main_ok(void);
 bool r_last_main_sent(void);
+#define R_TIMEOUT 5
+uint64_t r_dlsym_call(int, const char *, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+uint64_t r_class(const char *);
+uint64_t r_msg2(uint64_t, const char *, uint64_t, uint64_t, uint64_t, uint64_t);
+bool r_is_objc_ptr(uint64_t);
+bool remote_write(uint64_t, const void *, uint64_t);
 void remote_call_with_session(RemoteCallSession *, void (^)(void));
 uint64_t remote_call_current_process_generation(void);
 bool remote_call_last_call_ok(void);
