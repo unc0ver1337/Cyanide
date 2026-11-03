@@ -25,6 +25,7 @@ static const MethodSpec kMethods[] = {
     METHOD(object_class, object_get_instance_id, "GetInstanceID", "System.Int32", 0, NULL, NULL),
     METHOD(object_class, object_get_name, "get_name", "System.String", 0, NULL, NULL),
     METHOD(object_class, object_is_alive, "op_Implicit", "System.Boolean", 1, "UnityEngine.Object", NULL),
+    METHOD(object_class, object_destroy, "Destroy", "System.Void", 1, "UnityEngine.Object", NULL),
     METHOD(resources_class, resources_find_all, "FindObjectsOfTypeAll", "UnityEngine.Object[]", 1, "System.Type", NULL),
     METHOD(shader_class, shader_find, "Find", "UnityEngine.Shader", 1, "System.String", NULL),
     METHOD(shader_class, shader_is_supported, "get_isSupported", "System.Boolean", 0, NULL, NULL),
