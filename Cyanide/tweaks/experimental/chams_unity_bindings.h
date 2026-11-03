@@ -6,6 +6,7 @@ typedef struct {
     uint64_t object_class, resources_class, shader_class, material_class;
     uint64_t renderer_class, skinned_renderer_class, mesh_class, texture_class;
     uint64_t component_class, game_object_class;
+    uint64_t array_class, array_get_length, array_copy, array_set_value;
     uint64_t object_get_instance_id, object_get_name, object_is_alive, object_destroy;
     uint64_t resources_find_all, shader_find, shader_is_supported;
     uint64_t material_constructor, material_get_shader, material_set_color;
