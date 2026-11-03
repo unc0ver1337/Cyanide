@@ -49,7 +49,23 @@ CYWindowStatus cy_chams_window_open(CYChamsWindow *s) {
     if (!r_is_objc_ptr(appClass)) { s->uncertain = true; return CY_WINDOW_INDETERMINATE; }
     uint64_t app = send_main(s, appClass, "sharedApplication", 0, 0);
     uint64_t keyWindow = send_main(s, app, "keyWindow", 0, 0);
-    s->scene = send_main(s, keyWindow, "windowScene", 0, 0);
+    s->scene = r_is_objc_ptr(keyWindow) ? send_main(s, keyWindow, "windowScene", 0, 0) : 0;
+    if (!r_is_objc_ptr(s->scene) && !s->uncertain) {
+        uint64_t scenes=send_main(s,app,"connectedScenes",0,0);
+        uint64_t sceneArray=send_main(s,scenes,"allObjects",0,0);
+        uint64_t sceneCount=send_main(s,sceneArray,"count",0,0);
+        if (!s->uncertain && sceneCount>0 && sceneCount<64) {
+            for (uint64_t i=0;i<sceneCount;i++) {
+                uint64_t candidate=send_main(s,sceneArray,"objectAtIndex:",i,0);
+                uint64_t active=send_main(s,candidate,"activationState",0,0);
+                // Prefer an active scene; otherwise keep the first valid scene
+                // as a fallback for SpringBoard while another app is frontmost.
+                if (r_is_objc_ptr(candidate) && !r_is_objc_ptr(s->scene)) s->scene=candidate;
+                if (r_is_objc_ptr(candidate) && active==0) { s->scene=candidate; break; }
+                if (s->uncertain) break;
+            }
+        }
+    }
     if (s->uncertain) return CY_WINDOW_INDETERMINATE;
     if (!r_is_objc_ptr(s->scene)) return CY_WINDOW_FAILED;
     uint64_t windowClass = r_class("UIWindow");
