@@ -37,7 +37,6 @@ function create(backend = true, failSet = false) {
     if (backend) {
         context.cy_chams_set_mode = (mode, on) => { calls.push(['mode', mode, on]); return !failSet; };
         context.cy_chams_stop = () => { calls.push(['stop']); return true; };
-        context.cy_chams_refresh = () => true;
         context.cy_chams_window_open = () => win;
         context.cy_chams_window_close = () => true;
         context.cy_chams_window_refresh = () => true;
