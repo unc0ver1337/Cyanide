@@ -24,12 +24,16 @@ if [ "${CI:-}" = "true" ]; then
         -fsyntax-only "$ROOT/experiments/chams/check_main_syntax.m" \
         "$ROOT/experiments/chams/check_symbols_syntax.m" \
         "$ROOT/experiments/chams/check_metadata_syntax.m" \
-        "$ROOT/experiments/chams/check_bindings_syntax.m"
+        "$ROOT/experiments/chams/check_bindings_syntax.m" \
+        "$ROOT/experiments/chams/check_rooted_syntax.m"
     node --check "$ROOT/experiments/chams/menu.js"
     (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
         "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
     "$RUNNER_TEMP/chams-invocation-probe"
+    clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
+        "$ROOT/experiments/chams/rooted_host_test.m" -o "$RUNNER_TEMP/chams-rooted-test"
+    "$RUNNER_TEMP/chams-rooted-test"
     clang -std=c11 -Wall -Wextra -Werror \
         "$ROOT/experiments/chams/test_material_filter.c" \
         "$ROOT/Cyanide/tweaks/experimental/chams_material_filter.c" \
