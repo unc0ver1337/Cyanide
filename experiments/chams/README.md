@@ -12,6 +12,8 @@ on an iPhone. A failed or indeterminate call must never be retried blindly.
 The metadata helper can resolve classes and exact method parameter signatures
 through exported functions. Bindings for relevant Unity APIs are experimental
 and untested against a live game; caller-side process verification is required.
+The SpringBoard target query is restricted to `com.axlebolt.standoff2`; the
+PID alone is not a stable process identity and is not used to attach yet.
 
 The game includes `SO2/Agents/OutlineHW` with `_OutlineColor`, `_ZTest`, and
 `_StencilReadMask`; it is present in an event-mode shader bundle. Its runtime

@@ -46,6 +46,9 @@ if [ "${CI:-}" = "true" ]; then
         "$ROOT/Cyanide/tweaks/experimental/chams_materials.c" \
         -o "$RUNNER_TEMP/chams-materials-test"
     "$RUNNER_TEMP/chams-materials-test"
+    clang -std=c11 -Wall -Wextra -Werror \
+        "$ROOT/experiments/chams/test_target.c" -o "$RUNNER_TEMP/chams-target-test"
+    "$RUNNER_TEMP/chams-target-test"
 fi
 
 export SCHEME="${SCHEME:-Cyanide}"
