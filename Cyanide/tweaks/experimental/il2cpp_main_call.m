@@ -16,7 +16,6 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_main(RemoteCallSession *session,
         return CY_IL2CPP_CALL_FAILED;
 
     uint64_t inv = 0, buffer = 0, types = 0;
-    BOOL mustLeakInvocation = NO;
     CYIL2CPPCallStatus status = CY_IL2CPP_CALL_FAILED;
     types = r_session_alloc_str(session, "Q^v^v^v^v");
     if (!types) goto cleanup;
@@ -43,10 +42,6 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_main(RemoteCallSession *session,
     r_session_msg2_main(session, inv, "invokeUsingIMP:", runtimeInvokeAddress, 0, 0, 0);
     if (r_last_main_sent()) status = CY_IL2CPP_CALL_INDETERMINATE;
     if (!r_last_main_ok()) {
-        if (r_last_main_sent()) {
-            // Invocation may still execute using caller-owned parameters.
-            mustLeakInvocation = YES;
-        }
         goto cleanup;
     }
     if (![session remoteWrite64:buffer value:0]) goto cleanup;
@@ -54,8 +49,12 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_main(RemoteCallSession *session,
     if (!r_last_call_ok() || ![session remoteRead:buffer to:result size:sizeof(*result)]) goto cleanup;
     status = CY_IL2CPP_CALL_COMPLETED;
 cleanup:
+    // A dispatched invocation or result copy may still be running. Do not
+    // issue cleanup IPC or release anything until its state is independently
+    // resolved; the caller must also retain its parameter storage.
+    if (status == CY_IL2CPP_CALL_INDETERMINATE) return status;
     if (types) r_session_free(session, types);
     if (buffer) r_session_dlsym_call(session, 100, "free", buffer, 0, 0, 0, 0, 0, 0, 0);
-    if (inv && !mustLeakInvocation) r_session_msg2(session, inv, "release", 0, 0, 0, 0);
+    if (inv) r_session_msg2(session, inv, "release", 0, 0, 0, 0);
     return status;
 }

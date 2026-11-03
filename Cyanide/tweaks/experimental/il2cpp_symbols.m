@@ -23,8 +23,16 @@ bool cy_il2cpp_resolve_symbols(RemoteCallSession *session, uint64_t image_handle
     if (!session || !image_handle) return false;
     CYIL2CPPSymbols resolved = {0};
     for (size_t i = 0; i < sizeof(kSymbols) / sizeof(kSymbols[0]); ++i) {
-        uint64_t name = r_session_alloc_str(session, kSymbols[i].name);
+        size_t length = strlen(kSymbols[i].name) + 1;
+        uint64_t name = r_session_dlsym_call(session, 100, "malloc", length,
+                                             0, 0, 0, 0, 0, 0, 0);
+        if (!r_last_call_ok()) { *indeterminate = true; return false; }
         if (!name) return false;
+        if (![session remoteWrite:name from:kSymbols[i].name size:length]) {
+            r_session_free(session, name);
+            if (!r_last_call_ok()) *indeterminate = true;
+            return false;
+        }
         uint64_t address = r_session_dlsym_call(session, 100, "dlsym",
                                                 image_handle, name,
                                                 0, 0, 0, 0, 0, 0);

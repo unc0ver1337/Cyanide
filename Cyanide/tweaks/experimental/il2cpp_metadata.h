@@ -3,7 +3,9 @@
 #import "il2cpp_symbols.h"
 
 // Caller owns and retains the session, serializes access, verifies the exact
-// target process, and keeps its RemoteCall session alive until close completes.
+// target process and its continued liveness, and keeps its RemoteCall session
+// alive until close completes. The stored generation is a cache key; it does
+// not independently prove that an already-attached process is still alive.
 typedef struct {
     __unsafe_unretained RemoteCallSession *session;
     CYIL2CPPSymbols symbols;
