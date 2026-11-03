@@ -21,6 +21,11 @@ if [ "${CI:-}" = "true" ]; then
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
         "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
     "$RUNNER_TEMP/chams-invocation-probe"
+    clang -std=c11 -Wall -Wextra -Werror \
+        "$ROOT/experiments/chams/test_material_filter.c" \
+        "$ROOT/Cyanide/tweaks/experimental/chams_material_filter.c" \
+        -o "$RUNNER_TEMP/chams-material-filter-test"
+    "$RUNNER_TEMP/chams-material-filter-test"
 fi
 
 export SCHEME="${SCHEME:-Cyanide}"
