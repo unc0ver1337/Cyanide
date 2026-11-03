@@ -18,7 +18,8 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # WIP branch: exercise the local calling convention before the iOS build.
 if [ "${CI:-}" = "true" ]; then
-    clang -target arm64-apple-ios15.0 -fobjc-arc -fblocks -std=gnu11 \
+    clang -target arm64-apple-ios15.0 -isysroot "$(xcrun --sdk iphoneos --show-sdk-path)" \
+        -fobjc-arc -fblocks -std=gnu11 \
         -Wall -Wextra -Werror -nostdinc -I "$ROOT/experiments/chams/stubs" \
         -fsyntax-only "$ROOT/experiments/chams/check_main_syntax.m" \
         "$ROOT/experiments/chams/check_symbols_syntax.m" \
