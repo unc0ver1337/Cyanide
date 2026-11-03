@@ -31,7 +31,8 @@ if [ "${CI:-}" = "true" ]; then
         "$ROOT/experiments/chams/check_window_syntax.m" \
         "$ROOT/experiments/chams/check_alloc_syntax.m" \
         "$ROOT/experiments/chams/check_factory_syntax.m" \
-        "$ROOT/experiments/chams/check_apply_syntax.m"
+        "$ROOT/experiments/chams/check_apply_syntax.m" \
+        "$ROOT/experiments/chams/check_scan_syntax.m"
     node --check "$ROOT/experiments/chams/menu.js"
     (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
@@ -60,6 +61,9 @@ if [ "${CI:-}" = "true" ]; then
     clang -x objective-c -fblocks -std=gnu11 -Wall -Wextra -Werror \
         "$ROOT/experiments/chams/test_apply.m" -o "$RUNNER_TEMP/chams-apply-test"
     "$RUNNER_TEMP/chams-apply-test"
+    clang -x objective-c -fblocks -std=gnu11 -Wall -Wextra -Werror \
+        "$ROOT/experiments/chams/test_scan.m" -o "$RUNNER_TEMP/chams-scan-test"
+    "$RUNNER_TEMP/chams-scan-test"
 fi
 
 export SCHEME="${SCHEME:-Cyanide}"

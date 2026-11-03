@@ -121,6 +121,7 @@ static uint64_t fake_target(uint64_t handle, uint64_t b, uint64_t c) { (void)b; 
 static uint64_t fake_unbox(uint64_t object, uint64_t b, uint64_t c) { (void)b; (void)c; return object; }
 static uint64_t fake_string_length(uint64_t object, uint64_t b, uint64_t c) { (void)object;(void)b;(void)c;return 3; }
 static uint64_t fake_string_chars(uint64_t object, uint64_t b, uint64_t c) { (void)b;(void)c;return object; }
+static uint64_t fake_class_type(uint64_t object, uint64_t b, uint64_t c) { (void)b;(void)c;assert(object==0x123);return 0x55; }
 static uint64_t fake_handle_free(uint64_t handle, uint64_t b, uint64_t c) {
     (void)b; (void)c; assert(handle); ++releasedHandles; return 0;
 }
@@ -208,6 +209,11 @@ int main(void) {
         metadata.symbols.object_unbox = PTR(fake_unbox);
         metadata.symbols.string_length = PTR(fake_string_length);
         metadata.symbols.string_chars = PTR(fake_string_chars);
+        metadata.symbols.class_get_type = PTR(fake_class_type);
+        metadata.symbols.type_get_object = PTR(fake_alloc_one);
+        metadata.symbols.gchandle_new = root;
+        uint64_t typeHandle=0;
+        assert(cy_metadata_type_handle(&metadata,0x123,&typeHandle) && typeHandle==UINT64_C(0x123456789a));
         metadata.symbols.gchandle_free = PTR(fake_handle_free);
         const char *types[] = {"System.String"};
         uint64_t method = 0;

@@ -1,4 +1,5 @@
 #import "il2cpp_metadata.h"
+#import "il2cpp_rooted_call.h"
 #import "../remote_objc.h"
 #include <string.h>
 
@@ -22,6 +23,20 @@ static bool call(CYIL2CPPMetadata *c, uint64_t pc, const char *name,
     if (!completed) { c->poisoned = true; return false; }
     *out = value;
     return true;
+}
+
+bool cy_metadata_type_handle(CYIL2CPPMetadata *c, uint64_t klass, uint64_t *handle) {
+    if (handle) *handle=0;
+    if (!c || !handle || !klass || !c->symbols.class_get_type || !c->symbols.type_get_object ||
+        !c->symbols.gchandle_new) return false;
+    uint64_t type=0;
+    if (!call(c,c->symbols.class_get_type,"il2cpp_class_get_type",klass,0,0,&type) || !type) return false;
+    CYIL2CPPRootedResult result={0};
+    CYIL2CPPCallStatus status=cy_il2cpp_alloc_rooted_main(c->session,c->symbols.type_get_object,
+                                  c->symbols.gchandle_new,type,0,1,&result);
+    *handle=result.gc_handle;
+    if (status==CY_IL2CPP_CALL_INDETERMINATE || (result.object && !result.gc_handle)) c->poisoned=true;
+    return status==CY_IL2CPP_CALL_COMPLETED && result.object && result.gc_handle && !c->poisoned;
 }
 
 bool cy_metadata_string_ascii(CYIL2CPPMetadata *c, uint64_t handle, char *out, size_t capacity) {
