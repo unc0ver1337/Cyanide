@@ -135,7 +135,7 @@ static uintptr_t fake_invoke(uintptr_t method, uintptr_t object, uintptr_t param
     return object;
 }
 static uintptr_t fake_root(uintptr_t object, bool pinned) {
-    assert([NSThread isMainThread] && !pinned);
+    assert([NSThread isMainThread] && pinned);
     return object ? UINT64_C(0x123456789a) : UINT64_C(0x123456789b);
 }
 int main(void) {

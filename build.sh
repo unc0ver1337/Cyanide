@@ -27,7 +27,8 @@ if [ "${CI:-}" = "true" ]; then
         "$ROOT/experiments/chams/check_bindings_syntax.m" \
         "$ROOT/experiments/chams/check_rooted_syntax.m" \
         "$ROOT/experiments/chams/check_target_syntax.m" \
-        "$ROOT/experiments/chams/check_managed_syntax.m"
+        "$ROOT/experiments/chams/check_managed_syntax.m" \
+        "$ROOT/experiments/chams/check_window_syntax.m"
     node --check "$ROOT/experiments/chams/menu.js"
     (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \

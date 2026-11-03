@@ -9,7 +9,7 @@ typedef struct {
 } CYIL2CPPRootedResult;
 
 // Experimental, disconnected from QuickLoader. Calls an object-returning
-// method and creates a GC handle in the same main-thread callback. Even a
+// method and creates a pinned GC handle in the same main-thread callback. Even a
 // null object may produce a nonzero handle; caller must release that handle.
 // On INDETERMINATE, caller must retain argument storage and make no further
 // remote calls until the outstanding operation is resolved independently.

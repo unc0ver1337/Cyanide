@@ -15,7 +15,7 @@ static uintptr_t combine(uintptr_t a, uintptr_t b, uintptr_t c, uintptr_t d) {
 }
 
 static uintptr_t root_object(uintptr_t object, bool pinned) {
-    if (![NSThread isMainThread] || pinned || object != 268) return 0;
+    if (![NSThread isMainThread] || !pinned || object != 268) return 0;
     return UINT64_C(0x123456789a);
 }
 
@@ -50,7 +50,7 @@ int main(void) {
         // returned pointer, and root it before Unity can run another frame.
         NSMethodSignature *rootSig = [NSMethodSignature signatureWithObjCTypes:"^v^vB"];
         NSInvocation *root = [NSInvocation invocationWithMethodSignature:rootSig];
-        bool pinned = false;
+        bool pinned = true;
         [root setArgument:&pinned atIndex:1];
         uintptr_t object = 0;
         uintptr_t handle = 0;

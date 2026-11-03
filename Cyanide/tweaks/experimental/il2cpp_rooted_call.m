@@ -116,7 +116,7 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
     root = create_invocation(&c, "^v^vB");
     if (!inner || !root || !set_arg(&c, inner, 0, method) ||
         !set_arg(&c, inner, 1, instance) || !set_arg(&c, inner, 2, parameters) ||
-        !set_arg(&c, inner, 3, exceptionSlot) || !set_arg(&c, root, 1, 0)) goto done;
+        !set_arg(&c, inner, 3, exceptionSlot) || !set_arg(&c, root, 1, 1)) goto done;
     uint64_t arrayClass = r_session_class(session, "NSMutableArray");
     if (!arrayClass) { c.uncertain = true; goto done; }
     uint64_t array = send(&c, arrayClass, "alloc", 0, 0);
