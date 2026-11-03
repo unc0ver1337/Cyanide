@@ -4,6 +4,7 @@
 #import "il2cpp_symbols.h"
 #import "../remote_objc.h"
 #import "../../TaskRop/RemoteCall.h"
+#import "../../kexploit/kutils.h"
 #include <string.h>
 
 @implementation CYChamsController {
@@ -49,7 +50,9 @@
     int found=0;
     CYTargetStatus status=cy_chams_find_running_pid(&found);
     if (status==CY_TARGET_INDETERMINATE) _quarantined=YES;
-    return status==CY_TARGET_FOUND && found==_pid && _session.pid==_pid;
+    if (status!=CY_TARGET_FOUND || found!=_pid || _session.pid!=_pid || !_session.taskAddr) return NO;
+    uint64_t proc=proc_find((pid_t)_pid);
+    return proc && proc_task(proc)==_session.taskAddr;
 }
 
 - (BOOL)start {
