@@ -1,6 +1,7 @@
 #define RemoteCall_h
 #define remote_objc_h
 #import "remote_syntax_stubs.h"
+#import "../../Cyanide/tweaks/experimental/chams_factory.h"
 #import "../../Cyanide/tweaks/experimental/chams_factory.m"
 #include <assert.h>
 #include <stdio.h>
