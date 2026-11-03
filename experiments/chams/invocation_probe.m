@@ -14,9 +14,9 @@ static uintptr_t combine(uintptr_t a, uintptr_t b, uintptr_t c, uintptr_t d) {
     return a + 3 * b + 5 * c + 7 * d;
 }
 
-static uint32_t root_object(uintptr_t object, bool pinned) {
+static uintptr_t root_object(uintptr_t object, bool pinned) {
     if (![NSThread isMainThread] || pinned || object != 268) return 0;
-    return 0x1234;
+    return UINT64_C(0x123456789a);
 }
 
 static NSInvocation *step(id target, SEL selector, const void *arg0, const void *arg1) {
@@ -48,12 +48,12 @@ int main(void) {
         }
         // A single main-thread callback must invoke the method, copy its
         // returned pointer, and root it before Unity can run another frame.
-        NSMethodSignature *rootSig = [NSMethodSignature signatureWithObjCTypes:"I^vB"];
+        NSMethodSignature *rootSig = [NSMethodSignature signatureWithObjCTypes:"^v^vB"];
         NSInvocation *root = [NSInvocation invocationWithMethodSignature:rootSig];
         bool pinned = false;
         [root setArgument:&pinned atIndex:1];
         uintptr_t object = 0;
-        uint32_t handle = 0;
+        uintptr_t handle = 0;
         void *objectOut = &object, *objectIn = &object, *handleOut = &handle;
         NSUInteger firstArgument = 0;
         IMP invokeFunction = (IMP)combine, rootFunction = (IMP)root_object;
@@ -65,8 +65,8 @@ int main(void) {
             step(root, @selector(getReturnValue:), &handleOut, NULL)
         ];
         [sequence makeObjectsPerformSelector:@selector(invoke)];
-        if (object != expected || handle != 0x1234) {
-            fprintf(stderr, "root sequence failed: %lu %u\n", (unsigned long)object, handle);
+        if (object != expected || handle != UINT64_C(0x123456789a)) {
+            fprintf(stderr, "root sequence failed: %lu %lu\n", (unsigned long)object, (unsigned long)handle);
             return 3;
         }
         puts("Host invocation passed; this does not test RemoteCall or a game.");
