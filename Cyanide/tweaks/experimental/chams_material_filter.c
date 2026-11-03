@@ -6,6 +6,11 @@ bool cy_chams_is_agent_material(const char *shader_name, const char *material_na
     if (strcmp(shader_name, "SO2/Agents/CoreAgent") != 0 &&
         strcmp(shader_name, "SO2/Agents/MsoAgent") != 0 &&
         strcmp(shader_name, "SO2/MSO/Mso") != 0) return false;
+    // Restrict to observed agent families: SO2/MSO/Mso can also be used by
+    // unrelated first-person objects. Unknown skins fail closed.
+    if (strncmp(material_name, "CT_", 3) != 0 &&
+        strncmp(material_name, "T_", 2) != 0 &&
+        strncmp(material_name, "MNQ_", 4) != 0) return false;
     return strstr(material_name, "_TP_") != NULL ||
            strstr(material_name, "_FP_") != NULL;
 }

@@ -21,7 +21,9 @@ typedef struct {
     CYChange (*append_overlay)(void *, uint64_t renderer, uint64_t snapshot,
                                const CYChamsStyle *style);
     CYChange (*restore)(void *, uint64_t renderer, uint64_t snapshot);
-    void (*drop)(void *, uint64_t renderer, uint64_t snapshot, bool process_alive);
+    // false forbids any remote calls; clear only local bookkeeping. Handles
+    // may be zero when a caller supplies an invalid candidate.
+    void (*drop)(void *, uint64_t renderer, uint64_t snapshot, bool allow_remote);
 } CYMaterialOperations;
 
 #define CY_MAX_CHAMS_RENDERERS 128

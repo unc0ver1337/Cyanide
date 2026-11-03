@@ -33,10 +33,12 @@ int main(void) {
     f.next=CY_CHANGE_UNKNOWN;
     assert(cy_material_consider(&s,&o,1,11,21,"SO2/Agents/CoreAgent","CT_TP_Diffuse")==CY_MATERIAL_UNCERTAIN);
     assert(s.count==1 && s.uncertain);
+    assert(cy_material_consider(&s,&o,2,12,22,"SO2/MSO/Mso","CT_FP_PBR")==CY_MATERIAL_UNCERTAIN);
+    assert(f.dead_drops==1);
     assert(!cy_material_restore_all(&s,&o));
     assert(f.restores==2);
     cy_material_forget_dead_process(&s,&o);
-    assert(f.dead_drops==1 && s.count==0 && s.generation==0);
+    assert(f.dead_drops==2 && s.count==0 && s.generation==0);
     puts("Material ownership and recovery tests passed (mock adapter).");
     return 0;
 }

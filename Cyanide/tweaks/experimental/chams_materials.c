@@ -19,11 +19,12 @@ CYMaterialResult cy_material_consider(CYMaterialState *s, const CYMaterialOperat
                                       const char *shader, const char *material) {
     if (!o || !o->drop) return CY_MATERIAL_FAILED;
     if (!s || !s->generation || !identity || !renderer || !snapshot || !o->append_overlay || !o->restore) {
-        o->drop(o->context, renderer, snapshot, true);
+        o->drop(o->context, renderer, snapshot, s && s->generation && !s->uncertain);
         return CY_MATERIAL_FAILED;
     }
     if (s->uncertain) {
-        o->drop(o->context, renderer, snapshot, true);
+        // No further remote cleanup is safe while a dispatched call may run.
+        o->drop(o->context, renderer, snapshot, false);
         return CY_MATERIAL_UNCERTAIN;
     }
     if (!cy_chams_is_agent_material(shader, material)) {
