@@ -26,8 +26,8 @@ function create(backend = true, failSet = false) {
         if (s === 'isHidden') return n.hidden ? '0x1' : '0x0';
         if (s === 'isOn') return n.on ? '0x1' : '0x0';
         if (s === 'isHighlighted') return n.highlighted ? '0x1' : '0x0';
+        if (/^constraintEqualToAnchor(?::|$)/.test(s)) return alloc('constraint');
         if (s.endsWith('Anchor')) return alloc('anchor');
-        if (s.startsWith('constraintEqualToAnchor:')) return alloc('constraint');
         if (/Color$/.test(s)) return alloc('color');
         return '0x0';
     }
