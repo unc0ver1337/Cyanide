@@ -29,6 +29,8 @@ bool cy_metadata_method_exact(CYIL2CPPMetadata *ctx, uint64_t klass, const char 
                               uint64_t *result);
 bool cy_metadata_handle_target(CYIL2CPPMetadata *ctx, uint64_t handle, uint64_t *object);
 bool cy_metadata_handle_free(CYIL2CPPMetadata *ctx, uint64_t handle);
+// Names outside the conservative printable ASCII subset are rejected.
+bool cy_metadata_string_ascii(CYIL2CPPMetadata *ctx, uint64_t handle, char *out, size_t capacity);
 // Caller must already know the exact boxed return type and its size.
 bool cy_metadata_unbox(CYIL2CPPMetadata *ctx, uint64_t handle, void *out, size_t size);
 bool cy_metadata_close(CYIL2CPPMetadata *ctx);

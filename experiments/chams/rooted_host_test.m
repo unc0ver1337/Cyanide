@@ -119,6 +119,8 @@ static uint64_t fake_type_free(uint64_t type, uint64_t b, uint64_t c) {
 }
 static uint64_t fake_target(uint64_t handle, uint64_t b, uint64_t c) { (void)b; (void)c; return handle; }
 static uint64_t fake_unbox(uint64_t object, uint64_t b, uint64_t c) { (void)b; (void)c; return object; }
+static uint64_t fake_string_length(uint64_t object, uint64_t b, uint64_t c) { (void)object;(void)b;(void)c;return 3; }
+static uint64_t fake_string_chars(uint64_t object, uint64_t b, uint64_t c) { (void)b;(void)c;return object; }
 static uint64_t fake_handle_free(uint64_t handle, uint64_t b, uint64_t c) {
     (void)b; (void)c; assert(handle); ++releasedHandles; return 0;
 }
@@ -204,6 +206,8 @@ int main(void) {
         metadata.symbols.free = PTR(fake_type_free);
         metadata.symbols.gchandle_get_target = PTR(fake_target);
         metadata.symbols.object_unbox = PTR(fake_unbox);
+        metadata.symbols.string_length = PTR(fake_string_length);
+        metadata.symbols.string_chars = PTR(fake_string_chars);
         metadata.symbols.gchandle_free = PTR(fake_handle_free);
         const char *types[] = {"System.String"};
         uint64_t method = 0;
@@ -215,6 +219,10 @@ int main(void) {
         uint32_t boxed = 0x76543210, unboxed = 0;
         assert(cy_metadata_unbox(&metadata, (uint64_t)(uintptr_t)&boxed, &unboxed, sizeof(unboxed)));
         assert(unboxed == boxed && cy_metadata_handle_free(&metadata, (uint64_t)(uintptr_t)&boxed));
+        unsigned short name[]={'C','T','_'}; char ascii[8];
+        assert(cy_metadata_string_ascii(&metadata,(uint64_t)(uintptr_t)name,ascii,sizeof(ascii)) && !strcmp(ascii,"CT_"));
+        assert(!cy_metadata_string_ascii(&metadata,(uint64_t)(uintptr_t)name,ascii,3));
+        name[1]=0x410; assert(!cy_metadata_string_ascii(&metadata,(uint64_t)(uintptr_t)name,ascii,sizeof(ascii)));
         assert(releasedHandles == 1);
 
         failFunction = PTR(fake_method_name);

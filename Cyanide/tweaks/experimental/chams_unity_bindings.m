@@ -60,9 +60,11 @@ bool cy_chams_find_unity_bindings(CYIL2CPPMetadata *ctx, CYChamsUnityBindings *o
     if (!cy_metadata_class(ctx, "mscorlib", "System", "Array", &result.array_class)) return false;
     const char *copyTypes[] = {"System.Array", "System.Array", "System.Int32"};
     const char *setTypes[] = {"System.Object", "System.Int32"};
+    const char *indexTypes[] = {"System.Int32"};
     if (!cy_metadata_method_exact(ctx, result.array_class, "get_Length", "System.Int32", NULL, 0, &result.array_get_length) ||
         !cy_metadata_method_exact(ctx, result.array_class, "Copy", "System.Void", copyTypes, 3, &result.array_copy) ||
-        !cy_metadata_method_exact(ctx, result.array_class, "SetValue", "System.Void", setTypes, 2, &result.array_set_value)) return false;
+        !cy_metadata_method_exact(ctx, result.array_class, "SetValue", "System.Void", setTypes, 2, &result.array_set_value) ||
+        !cy_metadata_method_exact(ctx, result.array_class, "GetValue", "System.Object", indexTypes, 1, &result.array_get_value)) return false;
     for (size_t i = 0; i < sizeof(kMethods) / sizeof(kMethods[0]); ++i) {
         const MethodSpec *spec = &kMethods[i];
         uint64_t klass = *(uint64_t *)((char *)&result + spec->class_offset), value = 0;

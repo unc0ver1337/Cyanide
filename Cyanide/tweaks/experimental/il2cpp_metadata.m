@@ -24,6 +24,23 @@ static bool call(CYIL2CPPMetadata *c, uint64_t pc, const char *name,
     return true;
 }
 
+bool cy_metadata_string_ascii(CYIL2CPPMetadata *c, uint64_t handle, char *out, size_t capacity) {
+    if (out && capacity) out[0]='\0';
+    if (!c || !out || capacity<1 || !handle || !c->symbols.string_length || !c->symbols.string_chars) return false;
+    uint64_t str=0, length=0, chars=0;
+    if (!cy_metadata_handle_target(c,handle,&str) || !str ||
+        !call(c,c->symbols.string_length,"il2cpp_string_length",str,0,0,&length) ||
+        length>=capacity || length>255 ||
+        !call(c,c->symbols.string_chars,"il2cpp_string_chars",str,0,0,&chars) || (!chars && length)) return false;
+    for (size_t i=0;i<(size_t)length;i++) {
+        unsigned short ch=0;
+        if (![c->session remoteRead:chars+i*sizeof(ch) to:&ch size:sizeof(ch)]) { c->poisoned=true; out[0]='\0'; return false; }
+        if (ch<32 || ch>126) { out[0]='\0'; return false; }
+        out[i]=(char)ch;
+    }
+    out[length]='\0'; return true;
+}
+
 static uint64_t make_string(CYIL2CPPMetadata *c, const char *s) {
     if (!s || !current_generation(c)) return 0;
     size_t length = strlen(s);
