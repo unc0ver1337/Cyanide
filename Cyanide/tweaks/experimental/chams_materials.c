@@ -12,6 +12,16 @@ void cy_material_state_init(CYMaterialState *state, uint64_t generation) {
     state->style.visible_ztest = 4;
     state->style.behind_queue = 3100;
     state->style.visible_queue = 3101;
+    state->style.mode_mask = 1u;
+    const float colors[6][4] = {
+        {0,0.65f,1,1}, {0,0,0,1}, {1,0.2f,0.8f,1},
+        {0.2f,0.8f,1,1}, {1,1,1,1}, {0.2f,1,0.2f,1}
+    };
+    for (size_t i=0;i<6;i++) {
+        memcpy(state->style.mode_color[i],colors[i],sizeof(colors[i]));
+        state->style.mode_ztest[i]=(i==5)?4:8;
+        state->style.mode_queue[i]=3102+(int)i;
+    }
 }
 
 CYMaterialResult cy_material_consider(CYMaterialState *s, const CYMaterialOperations *o,

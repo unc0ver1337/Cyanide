@@ -16,5 +16,6 @@ typedef struct {
 // On an indeterminate result do not call close or issue further remote calls.
 CYWindowStatus cy_chams_window_open(CYChamsWindow *state);
 CYWindowStatus cy_chams_window_expand(CYChamsWindow *state, bool expanded);
+CYWindowStatus cy_chams_window_refresh(CYChamsWindow *state);
 CYWindowStatus cy_chams_window_close(CYChamsWindow *state);
 #endif

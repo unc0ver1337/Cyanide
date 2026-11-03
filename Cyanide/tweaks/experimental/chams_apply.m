@@ -37,16 +37,20 @@ CYChange cy_chams_append(void *context, uint64_t renderer, uint64_t snapshot, co
     if (!valid(a) || !a->bindings->array_get_length || !a->bindings->array_copy ||
         !a->bindings->array_set_value || !a->bindings->renderer_set_materials || !a->bindings->material_class)
         return CY_CHANGE_FAILED;
-    uint64_t r=0, original=0, behind=0, front=0, replacement=0, boxed=0, array=0;
+    uint64_t r=0, original=0, replacement=0, boxed=0, array=0;
     int32_t count=0; CYIL2CPPRootedResult result={0}; CYChange status=CY_CHANGE_FAILED;
-    if (!object(a,renderer,&r) || !object(a,snapshot,&original) ||
-        !object(a,a->passes->behind,&behind) || !object(a,a->passes->visible,&front)) return CY_CHANGE_FAILED;
+    if (!object(a,renderer,&r) || !object(a,snapshot,&original)) return CY_CHANGE_FAILED;
     status=invoke(a,a->bindings->array_get_length,original,NULL,0,true,&result);
     boxed=result.gc_handle;
     if (status!=CY_CHANGE_OK) goto done;
     if (!boxed || !cy_metadata_unbox(a->metadata,boxed,&count,sizeof(count))) { status=CY_CHANGE_FAILED; goto done; }
     if (count<1 || count>256) { status=CY_CHANGE_FAILED; goto done; }
-    CYIL2CPPCallStatus allocated=cy_chams_new_array(a->metadata,a->bindings->material_class,(size_t)count+2,&result);
+    uint32_t mask=style ? style->mode_mask : 1u;
+    unsigned overlays=0;
+    if (mask&1u) overlays+=2;
+    for (unsigned i=1;i<CY_CHAMS_MODE_COUNT;i++) if (mask&(1u<<i)) overlays++;
+    if (!overlays) { status=CY_CHANGE_FAILED; goto done; }
+    CYIL2CPPCallStatus allocated=cy_chams_new_array(a->metadata,a->bindings->material_class,(size_t)count+overlays,&result);
     replacement=result.gc_handle;
     if (allocated==CY_IL2CPP_CALL_INDETERMINATE) { status=CY_CHANGE_UNKNOWN; goto done; }
     if (allocated!=CY_IL2CPP_CALL_COMPLETED || !replacement || !object(a,replacement,&array)) { status=CY_CHANGE_FAILED; goto done; }
@@ -55,13 +59,22 @@ CYChange cy_chams_append(void *context, uint64_t renderer, uint64_t snapshot, co
     status=invoke(a,a->bindings->array_copy,0,copyArgs,3,false,&result);
     if (status!=CY_CHANGE_OK) goto done;
     int32_t index=count;
-    CYIL2CPPArgument setArgs[]={{.kind=CY_ARGUMENT_REFERENCE,.reference=behind},
+    CYIL2CPPArgument setArgs[2]={{.kind=CY_ARGUMENT_REFERENCE},
         {.kind=CY_ARGUMENT_VALUE,.bytes=&index,.size=sizeof(index)}};
-    status=invoke(a,a->bindings->array_set_value,array,setArgs,2,false,&result);
-    if (status!=CY_CHANGE_OK) goto done;
-    index=count+1; setArgs[0].reference=front;
-    status=invoke(a,a->bindings->array_set_value,array,setArgs,2,false,&result);
-    if (status!=CY_CHANGE_OK) goto done;
+    for (unsigned mode=0;mode<CY_CHAMS_MODE_COUNT;mode++) {
+        if (!(mask&(1u<<mode))) continue;
+        uint64_t passHandles[2]; unsigned passCount=1;
+        if (mode==0) { passHandles[0]=a->passes->behind; passHandles[1]=a->passes->visible; passCount=2; }
+        else passHandles[0]=a->passes->mode[mode-1];
+        for (unsigned p=0;p<passCount;p++) {
+            uint64_t pass=0;
+            if (!object(a,passHandles[p],&pass)) { status=CY_CHANGE_FAILED; goto done; }
+            setArgs[0].reference=pass;
+            status=invoke(a,a->bindings->array_set_value,array,setArgs,2,false,&result);
+            if (status!=CY_CHANGE_OK) goto done;
+            index++;
+        }
+    }
     CYIL2CPPArgument arg={.kind=CY_ARGUMENT_REFERENCE,.reference=array};
     status=invoke(a,a->bindings->renderer_set_materials,r,&arg,1,false,&result);
     // An exception or transport failure after entering the setter cannot prove

@@ -7,8 +7,7 @@ typedef struct { const char *name; size_t offset; } ClassSpec;
 static const ClassSpec kClasses[] = {
     CLASS(object_class, "Object"), CLASS(resources_class, "Resources"),
     CLASS(shader_class, "Shader"), CLASS(material_class, "Material"),
-    CLASS(renderer_class, "Renderer"), CLASS(skinned_renderer_class, "SkinnedMeshRenderer"),
-    CLASS(mesh_class, "Mesh"), CLASS(texture_class, "Texture2D"),
+    CLASS(renderer_class, "Renderer"), CLASS(texture_class, "Texture2D"),
     CLASS(component_class, "Component"), CLASS(game_object_class, "GameObject")
 };
 #undef CLASS
@@ -37,8 +36,6 @@ static const MethodSpec kMethods[] = {
     METHOD(material_class, material_set_texture, "SetTexture", "System.Void", 2, "System.String", "UnityEngine.Texture"),
     METHOD(renderer_class, renderer_get_materials, "get_sharedMaterials", "UnityEngine.Material[]", 0, NULL, NULL),
     METHOD(renderer_class, renderer_set_materials, "set_sharedMaterials", "System.Void", 1, "UnityEngine.Material[]", NULL),
-    METHOD(skinned_renderer_class, skinned_get_mesh, "get_sharedMesh", "UnityEngine.Mesh", 0, NULL, NULL),
-    METHOD(mesh_class, mesh_get_submesh_count, "get_subMeshCount", "System.Int32", 0, NULL, NULL),
     METHOD(texture_class, texture_get_white, "get_whiteTexture", "UnityEngine.Texture2D", 0, NULL, NULL),
     METHOD(component_class, component_get_game_object, "get_gameObject", "UnityEngine.GameObject", 0, NULL, NULL),
     METHOD(game_object_class, game_object_get_active, "get_activeInHierarchy", "System.Boolean", 0, NULL, NULL),

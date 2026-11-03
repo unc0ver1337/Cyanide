@@ -714,10 +714,19 @@ bool quickloader_run_js_string(NSString *jsCode) {
             if (!quickloader_generation_is_active(runGeneration)) return @NO;
             return @(cy_chams_window_close(&g_chams_window)==CY_WINDOW_OK);
         };
+        context[@"cy_chams_window_refresh"] = ^NSNumber *{
+            if (!quickloader_generation_is_active(runGeneration)) return @NO;
+            return @(cy_chams_window_refresh(&g_chams_window)==CY_WINDOW_OK);
+        };
         context[@"cy_chams_set_enabled"] = ^NSNumber *(BOOL enabled) {
             if (!quickloader_generation_is_active(runGeneration)) return @NO;
             if (!g_chams_controller && enabled) g_chams_controller=[CYChamsController new];
             return @(!g_chams_controller ? !enabled : [g_chams_controller setEnabled:enabled]);
+        };
+        context[@"cy_chams_set_mode"] = ^NSNumber *(unsigned mode, BOOL enabled) {
+            if (!quickloader_generation_is_active(runGeneration)) return @NO;
+            if (!g_chams_controller && enabled) g_chams_controller=[CYChamsController new];
+            return @(!g_chams_controller ? !enabled : [g_chams_controller setMode:mode enabled:enabled]);
         };
         context[@"cy_chams_refresh"] = ^NSNumber *{
             if (!quickloader_generation_is_active(runGeneration) || !g_chams_controller) return @NO;

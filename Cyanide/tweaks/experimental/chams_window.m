@@ -32,7 +32,7 @@ static bool layout(CYChamsWindow *s, bool expanded) {
     if (!ok) { s->uncertain = true; return false; }
     if (!(bounds.width >= 240 && bounds.width <= 2000 &&
           bounds.height >= 240 && bounds.height <= 2000)) return false;
-    double width = expanded ? 220 : 64, height = expanded ? 180 : 44;
+    double width = expanded ? 300 : 64, height = expanded ? 340 : 44;
     CYRect frame = {bounds.x + (bounds.width - width) / 2,
                     bounds.y + (bounds.height - height) / 2, width, height};
     if (!send_raw(s, s->window, "setFrame:", &frame, sizeof(frame))) return false;
@@ -83,6 +83,7 @@ CYWindowStatus cy_chams_window_open(CYChamsWindow *s) {
     if (!r_is_objc_ptr(clear)) return s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
     send_main(s, s->window, "setBackgroundColor:", clear, 0);
     send_main(s, s->window, "setUserInteractionEnabled:", 1, 0);
+    send_main(s, s->window, "setAutoresizingMask:", 18, 0); // flexible width | height
     double level = 999999.0;
     if (s->uncertain || !send_raw(s, s->window, "setWindowLevel:", &level, sizeof(level)) ||
         !layout(s, true)) return s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
@@ -95,6 +96,13 @@ CYWindowStatus cy_chams_window_expand(CYChamsWindow *s, bool expanded) {
         return s && s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
     if (s->expanded == expanded) return CY_WINDOW_OK;
     if (!layout(s, expanded)) return s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
+    return CY_WINDOW_OK;
+}
+
+CYWindowStatus cy_chams_window_refresh(CYChamsWindow *s) {
+    if (!current(s) || !r_is_objc_ptr(s->window))
+        return s && s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
+    if (!layout(s,s->expanded)) return s->uncertain ? CY_WINDOW_INDETERMINATE : CY_WINDOW_FAILED;
     return CY_WINDOW_OK;
 }
 

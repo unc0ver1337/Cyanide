@@ -1,6 +1,8 @@
 #import "chams_scan.h"
 #import "il2cpp_managed_call.h"
+#import "chams_material_filter.h"
 #include <string.h>
+#include <stdio.h>
 
 typedef struct { CYChamsAdapter *adapter; bool ok; } Scan;
 static uint64_t target(Scan *s,uint64_t handle) {
@@ -42,30 +44,30 @@ static bool read_name(Scan *s,uint64_t object,char *name,size_t capacity) {
 }
 static bool scan_renderer(Scan *s,CYMaterialState *state,uint64_t *renderer) {
     const CYChamsUnityBindings *b=s->adapter->bindings; uint64_t r=target(s,*renderer);
-    uint64_t mesh=0,snapshot=0,material=0,shader=0; int32_t submeshes=0,identity=0,count=0;
+    uint64_t snapshot=0,material=0,shader=0; int32_t identity=0,count=0;
     char materialName[256]={0},shaderName[256]={0}; bool matchReady=false;
     if (!r) goto done;
-    mesh=invoke_object(s,b->skinned_get_mesh,r,NULL,0);
-    if (!s->ok || !mesh) goto done;
-    uint64_t meshObject=target(s,mesh);
-    if (!meshObject || !integer(s,b->mesh_get_submesh_count,meshObject,&submeshes)) goto done;
-    if (submeshes!=1) goto done;
     if (!integer(s,b->object_get_instance_id,r,&identity) || !identity) goto done;
     CYChange status=cy_chams_snapshot(s->adapter,*renderer,&snapshot);
     if (status==CY_CHANGE_UNKNOWN) { s->ok=false; goto done; }
     if (status!=CY_CHANGE_OK || !snapshot) goto done;
     uint64_t array=target(s,snapshot);
     if (!array || !integer(s,b->array_get_length,array,&count)) goto done;
-    if (count!=1) goto done;
-    material=element(s,array,0);
-    uint64_t mat=material ? target(s,material) : 0;
-    if (!mat || !read_name(s,mat,materialName,sizeof(materialName))) goto done;
-    shader=invoke_object(s,b->material_get_shader,mat,NULL,0);
-    uint64_t sh=shader ? target(s,shader) : 0;
-    if (!sh || !read_name(s,sh,shaderName,sizeof(shaderName))) goto done;
-    matchReady=true;
+    if (count<1 || count>256) goto done;
+    // Check every shared material. Character renderers often have multiple
+    // slots, and the agent material is not guaranteed to be slot zero.
+    for (int32_t i=0;i<count && s->ok;i++) {
+        material=element(s,array,i);
+        uint64_t mat=material ? target(s,material) : 0;
+        if (!mat || !read_name(s,mat,materialName,sizeof(materialName))) goto done;
+        shader=invoke_object(s,b->material_get_shader,mat,NULL,0);
+        uint64_t sh=shader ? target(s,shader) : 0;
+        if (!sh || !read_name(s,sh,shaderName,sizeof(shaderName))) goto done;
+        if (cy_chams_is_agent_material(shaderName,materialName)) { matchReady=true; break; }
+        drop(s,&shader); drop(s,&material);
+    }
 done:
-    drop(s,&shader);drop(s,&material);drop(s,&mesh);
+    drop(s,&shader);drop(s,&material);
     if (matchReady && s->ok) {
         CYMaterialOperations ops={s->adapter,cy_chams_append,cy_chams_restore,cy_chams_drop};
         CYMaterialResult result=cy_material_consider(state,&ops,(uint32_t)identity,*renderer,snapshot,shaderName,materialName);
@@ -80,11 +82,11 @@ bool cy_chams_scan_once(CYChamsAdapter *adapter,CYMaterialState *state) {
     if (!adapter || !adapter->metadata || adapter->metadata->poisoned || !adapter->bindings || !state ||
         !state->generation || state->uncertain || state->generation!=adapter->metadata->generation) return false;
     const CYChamsUnityBindings *b=adapter->bindings;
-    if (!b->skinned_renderer_class || !b->resources_find_all || !b->array_get_value || !b->array_get_length ||
-        !b->skinned_get_mesh || !b->mesh_get_submesh_count || !b->object_get_instance_id ||
+    if (!b->renderer_class || !b->resources_find_all || !b->array_get_value || !b->array_get_length ||
+        !b->object_get_instance_id ||
         !b->object_get_name || !b->material_get_shader) return false;
     Scan s={adapter,true};uint64_t type=0,array=0;
-    if (!cy_metadata_type_handle(adapter->metadata,b->skinned_renderer_class,&type)) { s.ok=false; goto done; }
+    if (!cy_metadata_type_handle(adapter->metadata,b->renderer_class,&type)) { s.ok=false; goto done; }
     uint64_t typeObject=target(&s,type);
     if (!typeObject) goto done;
     CYIL2CPPArgument arg={.kind=CY_ARGUMENT_REFERENCE,.reference=typeObject};
@@ -98,5 +100,9 @@ bool cy_chams_scan_once(CYChamsAdapter *adapter,CYMaterialState *state) {
     }
 done:
     drop(&s,&array);drop(&s,&type);
+    if (s.ok && !adapter->metadata->poisoned)
+        printf("[CHAMS] renderer sweep complete; active matches=%lu\n",(unsigned long)state->count);
+    else
+        printf("[CHAMS] renderer sweep failed; metadata poisoned=%d\n",adapter->metadata->poisoned ? 1 : 0);
     return s.ok && !adapter->metadata->poisoned;
 }
