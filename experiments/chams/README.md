@@ -9,6 +9,9 @@ first-person hands as well as third-person models. It can miss other skins. Symb
 designed to use IL2CPP exports instead of hard-coded game offsets. The
 experimental main-thread invocation helper is disconnected and is not tested
 on an iPhone. A failed or indeterminate call must never be retried blindly.
+The metadata helper can resolve classes and method candidates through exported
+functions, but caller-side process verification and overload signature checks
+are required before those candidates may be invoked.
 
 The game includes `SO2/Agents/OutlineHW` with `_OutlineColor`, `_ZTest`, and
 `_StencilReadMask`; it is present in an event-mode shader bundle. Its runtime

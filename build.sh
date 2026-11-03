@@ -18,6 +18,13 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # WIP branch: exercise the local calling convention before the iOS build.
 if [ "${CI:-}" = "true" ]; then
+    clang -target arm64-apple-ios15.0 -fobjc-arc -fblocks -std=gnu11 \
+        -Wall -Wextra -Werror -nostdinc -I "$ROOT/experiments/chams/stubs" \
+        -fsyntax-only "$ROOT/experiments/chams/check_main_syntax.m" \
+        "$ROOT/experiments/chams/check_symbols_syntax.m" \
+        "$ROOT/experiments/chams/check_metadata_syntax.m"
+    node --check "$ROOT/experiments/chams/menu.js"
+    (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
         "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
     "$RUNNER_TEMP/chams-invocation-probe"
