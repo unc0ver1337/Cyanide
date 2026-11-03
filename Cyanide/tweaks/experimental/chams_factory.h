@@ -4,7 +4,7 @@
 #import "chams_materials.h"
 
 // Owned pinned GC handles. Destroy only after original renderers are restored.
-typedef struct { uint64_t behind, visible; } CYChamsPasses;
+typedef struct { uint64_t behind, visible, mode[CY_CHAMS_MODE_COUNT-1]; } CYChamsPasses;
 
 // Experimental and disconnected: caller verifies process identity, runs on a
 // serialized session, and must retain the metadata context through cleanup.

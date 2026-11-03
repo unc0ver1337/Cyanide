@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+// Seven independent modes mapped from the seven source draw-hook branches.
+#define CY_CHAMS_MODE_COUNT 7
+
 // Tokens are independently owned managed handles supplied by the eventual
 // game adapter. A stable identity is distinct from each owned handle value.
 // A snapshot preserves the complete original material array, not just its
@@ -15,6 +18,9 @@ typedef struct {
     // Unity CompareFunction: Always = 8; LessEqual = 4.
     int behind_ztest, visible_ztest;
     int behind_queue, visible_queue;
+    uint32_t mode_mask;
+    float mode_color[6][4];
+    int mode_ztest[6], mode_queue[6];
 } CYChamsStyle;
 typedef struct {
     void *context;
