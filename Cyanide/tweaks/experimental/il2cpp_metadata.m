@@ -32,8 +32,8 @@ static uint64_t make_string(CYIL2CPPMetadata *c, const char *s) {
     if (!r_last_call_ok()) { c->poisoned = true; return 0; }
     if (!p) return 0;
     if (![c->session remoteWrite:p from:s size:length + 1]) {
-        r_session_dlsym_call(c->session, 100, "free", p, 0, 0, 0, 0, 0, 0, 0);
-        if (!r_last_call_ok()) c->poisoned = true;
+        // Lost memory access may mean the target/session is gone. Avoid IPC.
+        c->poisoned = true;
         return 0;
     }
     return p;
@@ -100,6 +100,78 @@ bool cy_metadata_method_candidate(CYIL2CPPMetadata *c, uint64_t klass,
     free_string(c, remoteName);
     if (!ok || c->poisoned || !method) return false;
     *result = method;
+    return true;
+}
+
+static bool strings_equal(CYIL2CPPMetadata *c, uint64_t a, uint64_t b, bool *equal) {
+    if (!a || !b || !equal || !current_generation(c)) return false;
+    uint64_t value = r_session_dlsym_call(c->session, 100, "strcmp", a, b, 0, 0, 0, 0, 0, 0);
+    if (!r_last_call_ok()) { c->poisoned = true; return false; }
+    *equal = value == 0;
+    return true;
+}
+
+static bool method_matches(CYIL2CPPMetadata *c, uint64_t method,
+                           const uint64_t expected[4], unsigned count, bool *matches) {
+    *matches = false;
+    uint64_t actual = 0;
+    if (!call(c, c->symbols.method_get_param_count, "il2cpp_method_get_param_count",
+              method, 0, 0, &actual)) return false;
+    if (actual != count) return true;
+    for (unsigned i = 0; i < count; ++i) {
+        uint64_t type = 0, name = 0, ignored = 0;
+        bool equal = false;
+        if (!call(c, c->symbols.method_get_param, "il2cpp_method_get_param",
+                  method, i, 0, &type) || !type) return false;
+        if (!call(c, c->symbols.type_get_name, "il2cpp_type_get_name",
+                  type, 0, 0, &name) || !name) return false;
+        bool compared = strings_equal(c, name, expected[i], &equal);
+        // An unresolved remote call can still reference its arguments.
+        if (c->poisoned) return false;
+        if (!call(c, c->symbols.free, "il2cpp_free", name, 0, 0, &ignored)) return false;
+        if (!compared) return false;
+        if (!equal) return true;
+    }
+    *matches = true;
+    return true;
+}
+
+bool cy_metadata_method_exact(CYIL2CPPMetadata *c, uint64_t klass, const char *name,
+                              const char *const *types, unsigned count, uint64_t *result) {
+    if (result) *result = 0;
+    if (!result || !klass || !name || count > 4 || (count && !types) || !current_generation(c)) return false;
+    uint64_t remoteName = 0, iterator = 0, expected[4] = {0}, found = 0;
+    bool ok = false;
+    remoteName = make_string(c, name);
+    if (!remoteName) goto done;
+    for (unsigned i = 0; i < count; ++i) {
+        expected[i] = make_string(c, types[i]);
+        if (!expected[i]) goto done;
+    }
+    iterator = r_session_dlsym_call(c->session, 100, "malloc", sizeof(uint64_t), 0, 0, 0, 0, 0, 0, 0);
+    if (!r_last_call_ok()) { c->poisoned = true; goto done; }
+    if (!iterator) goto done;
+    if (![c->session remoteWrite64:iterator value:0]) { c->poisoned = true; goto done; }
+    // A fixed upper bound prevents corrupt metadata from causing an endless walk.
+    for (unsigned i = 0; i < 2048; ++i) {
+        uint64_t method = 0, remoteMethodName = 0;
+        bool equal = false, matches = false;
+        if (!call(c, c->symbols.class_get_methods, "il2cpp_class_get_methods",
+                  klass, iterator, 0, &method)) goto done;
+        if (!method) { ok = true; break; }
+        if (!call(c, c->symbols.method_get_name, "il2cpp_method_get_name",
+                  method, 0, 0, &remoteMethodName) || !remoteMethodName) goto done;
+        if (!strings_equal(c, remoteMethodName, remoteName, &equal)) goto done;
+        if (!equal) continue;
+        if (!method_matches(c, method, expected, count, &matches)) goto done;
+        if (matches) { found = method; ok = true; break; }
+    }
+done:
+    free_string(c, iterator);
+    for (unsigned i = 0; i < count; ++i) free_string(c, expected[i]);
+    free_string(c, remoteName);
+    if (!ok || c->poisoned || !found) return false;
+    *result = found;
     return true;
 }
 

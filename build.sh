@@ -23,7 +23,8 @@ if [ "${CI:-}" = "true" ]; then
         -Wall -Wextra -Werror -nostdinc -I "$ROOT/experiments/chams/stubs" \
         -fsyntax-only "$ROOT/experiments/chams/check_main_syntax.m" \
         "$ROOT/experiments/chams/check_symbols_syntax.m" \
-        "$ROOT/experiments/chams/check_metadata_syntax.m"
+        "$ROOT/experiments/chams/check_metadata_syntax.m" \
+        "$ROOT/experiments/chams/check_bindings_syntax.m"
     node --check "$ROOT/experiments/chams/menu.js"
     (cd "$ROOT" && node experiments/chams/test_menu.cjs)
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \

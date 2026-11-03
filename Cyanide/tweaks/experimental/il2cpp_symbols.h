@@ -10,6 +10,9 @@ typedef struct {
     uint64_t type_get_object, runtime_invoke, string_new, object_unbox;
     uint64_t gchandle_new, gchandle_get_target, gchandle_free;
     uint64_t thread_current, thread_attach, thread_detach;
+    uint64_t class_get_methods, method_get_name, method_get_param_count;
+    uint64_t method_get_param, type_get_name, free;
+    uint64_t array_new, array_length, array_object_header_size, gc_wbarrier_set_field;
 } CYIL2CPPSymbols;
 
 // The caller supplies a handle for the already-loaded UnityFramework. This

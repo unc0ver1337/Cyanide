@@ -22,5 +22,10 @@ bool cy_metadata_class(CYIL2CPPMetadata *ctx, const char *assembly,
 bool cy_metadata_method_candidate(CYIL2CPPMetadata *ctx, uint64_t klass,
                                   const char *name, int argument_count,
                                   uint64_t *result);
+// Finds an exact method name and managed parameter types. At most four
+// parameters are supported. Type strings use IL2CPP's fully qualified names.
+bool cy_metadata_method_exact(CYIL2CPPMetadata *ctx, uint64_t klass, const char *name,
+                              const char *const *parameter_types, unsigned count,
+                              uint64_t *result);
 bool cy_metadata_close(CYIL2CPPMetadata *ctx);
 #endif
