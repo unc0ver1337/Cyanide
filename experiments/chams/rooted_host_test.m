@@ -11,6 +11,7 @@
 #import "../../Cyanide/tweaks/experimental/il2cpp_rooted_call.m"
 #import "../../Cyanide/tweaks/experimental/il2cpp_managed_call.m"
 #import "../../Cyanide/tweaks/experimental/il2cpp_metadata.m"
+#import "../../Cyanide/tweaks/experimental/chams_alloc.m"
 
 // Fake transport executes in this process on the main thread. It exercises
 // the production sequence construction and cleanup, not the iOS bridge.
@@ -144,6 +145,9 @@ static uintptr_t fake_alloc_one(uintptr_t klass) {
 static uintptr_t fake_alloc_two(uintptr_t klass, uintptr_t size) {
     assert([NSThread isMainThread] && klass == 0x55 && size == 3); return 0x22;
 }
+static uintptr_t fake_alloc_string(const char *text) {
+    assert([NSThread isMainThread] && !strcmp(text, "_Color")); return 0x22;
+}
 int main(void) {
     @autoreleasepool {
         TestSession *local = [TestSession new];
@@ -158,6 +162,17 @@ int main(void) {
         assert(cy_il2cpp_alloc_rooted_main(session, PTR(fake_alloc_two), root, 0x55, 3, 2, &out) == CY_IL2CPP_CALL_COMPLETED);
         assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && allocations == frees);
         assert(cy_il2cpp_alloc_rooted_main(session, PTR(fake_alloc_one), root, 0x55, 0, 3, &out) == CY_IL2CPP_CALL_FAILED);
+        CYIL2CPPMetadata allocMetadata = {.session = session, .generation = 42};
+        allocMetadata.symbols.gchandle_new = root;
+        allocMetadata.symbols.object_new = PTR(fake_alloc_one);
+        allocMetadata.symbols.array_new = PTR(fake_alloc_two);
+        allocMetadata.symbols.string_new = PTR(fake_alloc_string);
+        assert(cy_chams_new_object(&allocMetadata, 0x55, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a));
+        assert(cy_chams_new_array(&allocMetadata, 0x55, 3, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(cy_chams_new_array(&allocMetadata, 0x55, 4097, &out) == CY_IL2CPP_CALL_FAILED);
+        assert(cy_chams_new_string(&allocMetadata, "_Color", &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && allocations == frees);
         fakeException = 0x44;
         assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0, 0x33, &out) == CY_IL2CPP_CALL_COMPLETED);
         assert(out.object == 0 && out.gc_handle == 0 && out.exception == 0x44);
