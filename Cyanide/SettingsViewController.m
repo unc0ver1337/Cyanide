@@ -3710,6 +3710,34 @@ static BOOL settings_ensure_kexploit_recovery_only(void)
     return YES;
 }
 
+// Resolve SpringBoard through RunningBoard's bundle identity first. The KRW
+// process-name walk can return no match after a launchd persistence reattach
+// even though the current task and kernel primitive have already validated.
+// Returning the current proc by PID avoids depending on p_name traversal.
+static uint64_t settings_springboard_proc_by_bundle(void)
+{
+    Class predicateClass=NSClassFromString(@"RBSProcessPredicate");
+    Class handleClass=NSClassFromString(@"RBSProcessHandle");
+    SEL predicateSel=NSSelectorFromString(@"predicateMatchingBundleIdentifier:");
+    SEL handleSel=NSSelectorFromString(@"handleForPredicate:error:");
+    SEL pidSel=NSSelectorFromString(@"rbs_pid");
+    if (!predicateClass || !handleClass || ![predicateClass respondsToSelector:predicateSel] ||
+        ![handleClass respondsToSelector:handleSel]) return 0;
+    id predicate=((id(*)(id,SEL,id))objc_msgSend)(predicateClass,predicateSel,@"com.apple.springboard");
+    if (!predicate) return 0;
+    id handle=((id(*)(id,SEL,id,id *))objc_msgSend)(handleClass,handleSel,predicate,nil);
+    if (!handle || ![handle respondsToSelector:pidSel]) return 0;
+    int pid=(int)(((uint64_t(*)(id,SEL))objc_msgSend)(handle,pidSel)&0xffffffffULL);
+    if (pid<=1) return 0;
+    uint64_t proc=proc_find((pid_t)pid);
+    if (!proc || !proc_task(proc)) {
+        printf("[SETTINGS] RunningBoard found SpringBoard pid=%d, but proc lookup failed\n",pid);
+        return 0;
+    }
+    printf("[SETTINGS] RunningBoard resolved SpringBoard pid=%d proc=%#llx\n",pid,proc);
+    return proc;
+}
+
 static BOOL settings_ensure_springboard_remote_call_locked(void)
 {
     r_settle_set_mode((int)[[NSUserDefaults standardUserDefaults] integerForKey:kSettingsRemoteSettleMode]);
@@ -3784,6 +3812,7 @@ static BOOL settings_ensure_springboard_remote_call_locked(void)
     }
 
     if (g_springboard_connect_progress) g_springboard_connect_progress();
+    uint64_t springboardProc=settings_springboard_proc_by_bundle();
     for (int attempt = 1; attempt <= kSettingsSpringBoardRCMaxAttempts; attempt++) {
         int timeoutMS = (attempt == 1) ? kSettingsSpringBoardRCFirstExceptionTimeoutMS
                                        : kSettingsSpringBoardRCRetryTimeoutMS;
@@ -3793,6 +3822,9 @@ static BOOL settings_ensure_springboard_remote_call_locked(void)
         // park on our exception port if the init wedges (125410 watchdog);
         // the min-over-threads first trap still lands in ~1 s.
         remote_call_set_next_init_target_threads("SpringBoard", 3);
+        // One-shot override consumed by init_remote_call; if RunningBoard is
+        // unavailable the existing kernel name walk remains the fallback.
+        g_RC_targetProcOverride=springboardProc;
         if (init_remote_call_with_first_exception_timeout("SpringBoard",
                                                           false,
                                                           timeoutMS) == 0) {
@@ -3802,6 +3834,7 @@ static BOOL settings_ensure_springboard_remote_call_locked(void)
             settings_notify_remote_call_state_changed();
             return YES;
         }
+        g_RC_targetProcOverride=0;
         printf("[SETTINGS] init_remote_call(SpringBoard) attempt %d/%d failed (timeout=%dms)\n",
                attempt, kSettingsSpringBoardRCMaxAttempts, timeoutMS);
         if (attempt < kSettingsSpringBoardRCMaxAttempts) {
