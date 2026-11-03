@@ -7,13 +7,16 @@
 #define RemoteCall_h
 #define remote_objc_h
 #import "remote_syntax_stubs.h"
+#import "../../Cyanide/tweaks/experimental/il2cpp_main_call.m"
 #import "../../Cyanide/tweaks/experimental/il2cpp_rooted_call.m"
+#import "../../Cyanide/tweaks/experimental/il2cpp_managed_call.m"
 
 // Fake transport executes in this process on the main thread. It exercises
 // the production sequence construction and cleanup, not the iOS bridge.
 static bool lastOK = true, mainOK = true, mainSent = false, timeoutAfterDispatch = false;
 static unsigned allocations = 0, frees = 0;
 static uint64_t fakeException = 0;
+static bool inspectArguments = false;
 
 @interface TestSession : NSObject
 @end
@@ -62,12 +65,21 @@ uint64_t r_session_dlsym_call(RemoteCallSession *s, int timeout, const char *nam
     if (!strcmp(name, "free")) { ++frees; free((void *)(uintptr_t)a); return 0; }
     lastOK = false; return 0;
 }
+void r_session_free(RemoteCallSession *s, uint64_t p) {
+    (void)r_session_dlsym_call(s, 100, "free", p, 0, 0, 0, 0, 0, 0, 0);
+}
 bool r_last_call_ok(void) { return lastOK; }
 bool r_last_main_ok(void) { return mainOK; }
 bool r_last_main_sent(void) { return mainSent; }
 
 static uintptr_t fake_invoke(uintptr_t method, uintptr_t object, uintptr_t params, uintptr_t exception) {
-    assert([NSThread isMainThread] && method == 0x11 && params == 0x33);
+    assert([NSThread isMainThread] && method == 0x11);
+    if (inspectArguments) {
+        uint64_t *values = (uint64_t *)params;
+        assert(values && values[0] == 0x44 && values[1]);
+        const float *color = (const float *)(uintptr_t)values[1];
+        assert(color[0] == 1 && color[1] == 0 && color[2] == 0 && color[3] == 1);
+    } else assert(params == 0x33);
     *(uint64_t *)exception = fakeException;
     return object;
 }
@@ -86,14 +98,27 @@ int main(void) {
         assert(allocations == frees);
         fakeException = 0x44;
         assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0, 0x33, &out) == CY_IL2CPP_CALL_COMPLETED);
-        fprintf(stderr, "null case: object=%llx handle=%llx exception=%llx\n",
-                (unsigned long long)out.object, (unsigned long long)out.gc_handle,
-                (unsigned long long)out.exception);
-        assert(out.object == 0 && out.gc_handle == UINT64_C(0x123456789b) && out.exception == 0x44);
+        assert(out.object == 0 && out.gc_handle == 0 && out.exception == 0x44);
         assert(allocations == frees);
+        float red[4] = {1,0,0,1};
+        CYIL2CPPArgument args[2] = {
+            {.kind = CY_ARGUMENT_REFERENCE, .reference = 0x44},
+            {.kind = CY_ARGUMENT_VALUE, .bytes = red, .size = sizeof(red)}
+        };
+        inspectArguments = true; fakeException = 0;
+        assert(cy_il2cpp_call_managed(session, invoke, root, 0x11, 0x22, args, 2, true, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && out.exception == 0);
+        assert(allocations == frees);
+        fakeException = 0x44;
+        assert(cy_il2cpp_call_managed(session, invoke, root, 0x11, 0x22, args, 2, false, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.gc_handle == 0 && out.exception == 0x44 && allocations == frees);
+        args[1].size = 33;
+        assert(cy_il2cpp_call_managed(session, invoke, root, 0x11, 0x22, args, 2, false, &out) == CY_IL2CPP_CALL_FAILED);
+        assert(allocations == frees);
+        args[1].size = sizeof(red); fakeException = 0;
         timeoutAfterDispatch = true;
         unsigned previousFrees = frees;
-        assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0x22, 0x33, &out) == CY_IL2CPP_CALL_INDETERMINATE);
+        assert(cy_il2cpp_call_managed(session, invoke, root, 0x11, 0x22, args, 2, true, &out) == CY_IL2CPP_CALL_INDETERMINATE);
         assert(frees == previousFrees); // Pending target state must not be freed.
         puts("Rooted invocation construction and cleanup passed (local mock transport).");
     }
