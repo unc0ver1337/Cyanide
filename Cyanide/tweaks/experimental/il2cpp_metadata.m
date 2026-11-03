@@ -111,25 +111,35 @@ static bool strings_equal(CYIL2CPPMetadata *c, uint64_t a, uint64_t b, bool *equ
     return true;
 }
 
-static bool method_matches(CYIL2CPPMetadata *c, uint64_t method,
+static bool type_matches(CYIL2CPPMetadata *c, uint64_t type, uint64_t expected, bool *equal) {
+    uint64_t name = 0, ignored = 0;
+    if (!type || !call(c, c->symbols.type_get_name, "il2cpp_type_get_name", type, 0, 0, &name) || !name)
+        return false;
+    bool compared = strings_equal(c, name, expected, equal);
+    if (c->poisoned) return false;
+    if (!call(c, c->symbols.free, "il2cpp_free", name, 0, 0, &ignored)) return false;
+    return compared;
+}
+
+static bool method_matches(CYIL2CPPMetadata *c, uint64_t method, uint64_t expectedReturn,
                            const uint64_t expected[4], unsigned count, bool *matches) {
     *matches = false;
     uint64_t actual = 0;
     if (!call(c, c->symbols.method_get_param_count, "il2cpp_method_get_param_count",
               method, 0, 0, &actual)) return false;
     if (actual != count) return true;
+    uint64_t returnType = 0;
+    bool returnMatches = false;
+    if (!call(c, c->symbols.method_get_return_type, "il2cpp_method_get_return_type",
+              method, 0, 0, &returnType) || !type_matches(c, returnType, expectedReturn, &returnMatches))
+        return false;
+    if (!returnMatches) return true;
     for (unsigned i = 0; i < count; ++i) {
-        uint64_t type = 0, name = 0, ignored = 0;
+        uint64_t type = 0;
         bool equal = false;
         if (!call(c, c->symbols.method_get_param, "il2cpp_method_get_param",
                   method, i, 0, &type) || !type) return false;
-        if (!call(c, c->symbols.type_get_name, "il2cpp_type_get_name",
-                  type, 0, 0, &name) || !name) return false;
-        bool compared = strings_equal(c, name, expected[i], &equal);
-        // An unresolved remote call can still reference its arguments.
-        if (c->poisoned) return false;
-        if (!call(c, c->symbols.free, "il2cpp_free", name, 0, 0, &ignored)) return false;
-        if (!compared) return false;
+        if (!type_matches(c, type, expected[i], &equal)) return false;
         if (!equal) return true;
     }
     *matches = true;
@@ -137,13 +147,16 @@ static bool method_matches(CYIL2CPPMetadata *c, uint64_t method,
 }
 
 bool cy_metadata_method_exact(CYIL2CPPMetadata *c, uint64_t klass, const char *name,
-                              const char *const *types, unsigned count, uint64_t *result) {
+                              const char *returnType, const char *const *types, unsigned count,
+                              uint64_t *result) {
     if (result) *result = 0;
-    if (!result || !klass || !name || count > 4 || (count && !types) || !current_generation(c)) return false;
-    uint64_t remoteName = 0, iterator = 0, expected[4] = {0}, found = 0;
+    if (!result || !klass || !name || !returnType || count > 4 || (count && !types) || !current_generation(c)) return false;
+    uint64_t remoteName = 0, expectedReturn = 0, iterator = 0, expected[4] = {0}, found = 0;
     bool ok = false;
     remoteName = make_string(c, name);
     if (!remoteName) goto done;
+    expectedReturn = make_string(c, returnType);
+    if (!expectedReturn) goto done;
     for (unsigned i = 0; i < count; ++i) {
         expected[i] = make_string(c, types[i]);
         if (!expected[i]) goto done;
@@ -163,15 +176,38 @@ bool cy_metadata_method_exact(CYIL2CPPMetadata *c, uint64_t klass, const char *n
                   method, 0, 0, &remoteMethodName) || !remoteMethodName) goto done;
         if (!strings_equal(c, remoteMethodName, remoteName, &equal)) goto done;
         if (!equal) continue;
-        if (!method_matches(c, method, expected, count, &matches)) goto done;
+        if (!method_matches(c, method, expectedReturn, expected, count, &matches)) goto done;
         if (matches) { found = method; ok = true; break; }
     }
 done:
     free_string(c, iterator);
     for (unsigned i = 0; i < count; ++i) free_string(c, expected[i]);
+    free_string(c, expectedReturn);
     free_string(c, remoteName);
     if (!ok || c->poisoned || !found) return false;
     *result = found;
+    return true;
+}
+
+bool cy_metadata_handle_target(CYIL2CPPMetadata *c, uint64_t handle, uint64_t *object) {
+    if (object) *object = 0;
+    if (!handle || !object) return false;
+    return call(c, c->symbols.gchandle_get_target, "il2cpp_gchandle_get_target", handle, 0, 0, object);
+}
+
+bool cy_metadata_handle_free(CYIL2CPPMetadata *c, uint64_t handle) {
+    uint64_t ignored = 0;
+    return handle && call(c, c->symbols.gchandle_free, "il2cpp_gchandle_free", handle, 0, 0, &ignored);
+}
+
+bool cy_metadata_unbox(CYIL2CPPMetadata *c, uint64_t handle, void *out, size_t size) {
+    if (!out || !size || size > 32) return false;
+    memset(out, 0, size);
+    uint64_t object = 0, data = 0;
+    if (!cy_metadata_handle_target(c, handle, &object) || !object ||
+        !call(c, c->symbols.object_unbox, "il2cpp_object_unbox", object, 0, 0, &data) || !data)
+        return false;
+    if (![c->session remoteRead:data to:out size:size]) { memset(out, 0, size); c->poisoned = true; return false; }
     return true;
 }
 

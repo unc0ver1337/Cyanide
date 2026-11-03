@@ -22,10 +22,14 @@ bool cy_metadata_class(CYIL2CPPMetadata *ctx, const char *assembly,
 bool cy_metadata_method_candidate(CYIL2CPPMetadata *ctx, uint64_t klass,
                                   const char *name, int argument_count,
                                   uint64_t *result);
-// Finds an exact method name and managed parameter types. At most four
-// parameters are supported. Type strings use IL2CPP's fully qualified names.
+// Finds an exact method name, return type and managed parameter types. At
+// most four parameters are supported. Type names are fully qualified.
 bool cy_metadata_method_exact(CYIL2CPPMetadata *ctx, uint64_t klass, const char *name,
-                              const char *const *parameter_types, unsigned count,
+                              const char *return_type, const char *const *parameter_types, unsigned count,
                               uint64_t *result);
+bool cy_metadata_handle_target(CYIL2CPPMetadata *ctx, uint64_t handle, uint64_t *object);
+bool cy_metadata_handle_free(CYIL2CPPMetadata *ctx, uint64_t handle);
+// Caller must already know the exact boxed return type and its size.
+bool cy_metadata_unbox(CYIL2CPPMetadata *ctx, uint64_t handle, void *out, size_t size);
 bool cy_metadata_close(CYIL2CPPMetadata *ctx);
 #endif

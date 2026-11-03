@@ -33,7 +33,7 @@ if [ "${CI:-}" = "true" ]; then
     clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
         "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
     "$RUNNER_TEMP/chams-invocation-probe"
-    clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
+    clang -Wall -Wextra -Werror -fobjc-arc -fblocks -framework Foundation \
         "$ROOT/experiments/chams/rooted_host_test.m" -o "$RUNNER_TEMP/chams-rooted-test"
     "$RUNNER_TEMP/chams-rooted-test"
     clang -std=c11 -Wall -Wextra -Werror \

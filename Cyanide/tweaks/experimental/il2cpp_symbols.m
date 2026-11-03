@@ -12,7 +12,7 @@ static const SymbolDescriptor kSymbols[] = {
     CY_SYMBOL(object_unbox), CY_SYMBOL(gchandle_new), CY_SYMBOL(gchandle_get_target),
     CY_SYMBOL(gchandle_free), CY_SYMBOL(thread_current), CY_SYMBOL(thread_attach),
     CY_SYMBOL(thread_detach), CY_SYMBOL(class_get_methods), CY_SYMBOL(method_get_name),
-    CY_SYMBOL(method_get_param_count), CY_SYMBOL(method_get_param), CY_SYMBOL(type_get_name),
+    CY_SYMBOL(method_get_param_count), CY_SYMBOL(method_get_param), CY_SYMBOL(method_get_return_type), CY_SYMBOL(type_get_name),
     CY_SYMBOL(free), CY_SYMBOL(array_new), CY_SYMBOL(array_length),
     CY_SYMBOL(array_object_header_size), CY_SYMBOL(gc_wbarrier_set_field)
 };
