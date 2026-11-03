@@ -16,6 +16,7 @@
     CYMaterialState _materials;
     uint64_t _image;
     int _pid;
+    uint32_t _modeMask;
     BOOL _enabled, _quarantined;
 }
 
@@ -85,25 +86,43 @@
 }
 
 - (BOOL)setEnabled:(BOOL)enabled {
-    if (_quarantined) return NO;
-    if (!enabled) {
-        if (!_session) return YES;
-        if (![self targetStillMatches] || _metadata.poisoned) return NO;
+    return [self setMode:0 enabled:enabled];
+}
+
+- (BOOL)setMode:(unsigned)mode enabled:(BOOL)enabled {
+    if (mode>=CY_CHAMS_MODE_COUNT || _quarantined) return NO;
+    uint32_t bit=1u<<mode;
+    uint32_t next=enabled ? (_modeMask|bit) : (_modeMask&~bit);
+    if (next==_modeMask) return YES;
+    if (next && !_session && ![self start]) { (void)[self stop]; return NO; }
+    if (_session && _materials.count) {
         CYMaterialOperations ops={&_adapter,cy_chams_append,cy_chams_restore,cy_chams_drop};
         if (!cy_material_restore_all(&_materials,&ops)) { if (_materials.uncertain) _quarantined=YES; return NO; }
-        _enabled=NO; return YES;
     }
-    if (!_session && ![self start]) { (void)[self stop]; return NO; }
-    _enabled=YES;
-    if (![self refresh]) { (void)[self setEnabled:NO]; return NO; }
+    _modeMask=next;
+    _materials.style.mode_mask=next;
+    _enabled=next!=0;
+    if (_enabled && ![self refresh]) {
+        if (_materials.count) {
+            CYMaterialOperations ops={&_adapter,cy_chams_append,cy_chams_restore,cy_chams_drop};
+            if (!cy_material_restore_all(&_materials,&ops)) _quarantined=YES;
+        }
+        return NO;
+    }
     return YES;
 }
 
 - (BOOL)stop {
     if (!_session) return !_quarantined;
     if (_quarantined || _metadata.poisoned || ![self targetStillMatches]) return NO;
-    if (_enabled && ![self setEnabled:NO]) return NO;
-    if ((_passes.behind || _passes.visible) && !cy_chams_destroy_passes(&_metadata,&_bindings,&_passes)) return NO;
+    if (_materials.count) {
+        CYMaterialOperations ops={&_adapter,cy_chams_append,cy_chams_restore,cy_chams_drop};
+        if (!cy_material_restore_all(&_materials,&ops)) return NO;
+    }
+    _modeMask=0; _enabled=NO; _materials.style.mode_mask=0;
+    BOOL havePasses=_passes.behind || _passes.visible;
+    for (unsigned i=0;i<CY_CHAMS_MODE_COUNT-1;i++) havePasses |= _passes.mode[i] != 0;
+    if (havePasses && !cy_chams_destroy_passes(&_metadata,&_bindings,&_passes)) return NO;
     if (_metadata.session && !cy_metadata_close(&_metadata)) return NO;
     if (_image) {
         r_session_dlsym_call(_session,100,"dlclose",_image,0,0,0,0,0,0,0);
@@ -111,6 +130,6 @@
         _image=0;
     }
     if ([_session destroyRemoteCall]!=0) return NO;
-    _session=nil; _pid=0; _enabled=NO; return YES;
+    _session=nil; _pid=0; _enabled=NO; _modeMask=0; return YES;
 }
 @end

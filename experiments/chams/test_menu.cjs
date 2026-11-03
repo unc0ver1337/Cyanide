@@ -23,7 +23,9 @@ function create(backend = true, failSet = false) {
         if (s === 'removeFromSuperview') { let parent = nodes.get(n.parent); if (parent) parent.children = parent.children.filter(x => x !== p); return '0x0'; }
         if (s === 'setOn:') { n.on = !!a; return '0x0'; }
         if (s === 'setHidden:') { n.hidden = !!a; return '0x0'; }
+        if (s === 'isHidden') return n.hidden ? '0x1' : '0x0';
         if (s === 'isOn') return n.on ? '0x1' : '0x0';
+        if (s === 'isHighlighted') return n.highlighted ? '0x1' : '0x0';
         if (s.endsWith('Anchor')) return alloc('anchor');
         if (s === 'constraintEqualToAnchor:') return alloc('constraint');
         if (/Color$/.test(s)) return alloc('color');
@@ -33,10 +35,11 @@ function create(backend = true, failSet = false) {
         log: x => logs.push(x), setInterval: fn => { let id = next++; timers.set(id, fn); return id; },
         clearInterval: id => timers.delete(id)};
     if (backend) {
-        context.cy_chams_set_enabled = on => { calls.push(['set', on]); return !failSet; };
+        context.cy_chams_set_mode = (mode, on) => { calls.push(['mode', mode, on]); return !failSet; };
         context.cy_chams_stop = () => { calls.push(['stop']); return true; };
         context.cy_chams_window_open = () => win;
         context.cy_chams_window_close = () => true;
+        context.cy_chams_window_refresh = () => true;
         context.cy_chams_refresh = () => true;
     }
     vm.runInNewContext(source, context);
@@ -49,20 +52,24 @@ assert.equal(absent.nodes.get(absent.win).children.length, 0);
 
 const a = create();
 assert.equal(a.timers.size, 1);
+assert.deepEqual([0,1,2,3,4,5,6].map(i => a.byTag(734940+i)[1].type), Array(7).fill('UISwitch'));
 let tick = [...a.timers.values()][0];
-a.byTag(734933)[1].on = true; tick();
-assert.deepEqual(a.calls, [['set', true]]);
-a.byTag(734934)[1].on = false; tick();
+a.byTag(734940)[1].on = true; tick();
+assert.deepEqual(a.calls, [['mode', 0, true]]);
+a.byTag(734946)[1].on = true; tick();
+assert.deepEqual(a.calls, [['mode', 0, true], ['mode', 6, true]]);
+a.byTag(734934)[1].highlighted = true; tick();
 assert.equal(a.byTag(734932)[1].hidden, true);
-a.byTag(734934)[1].on = true; tick();
+a.byTag(734934)[1].highlighted = false; tick();
+a.byTag(734934)[1].highlighted = true; tick();
 assert.equal(a.byTag(734932)[1].hidden, false);
 a.msg(a.byTag(734931)[0], 'removeFromSuperview'); tick();
-assert.deepEqual(a.calls, [['set', true], ['stop']]);
+assert.deepEqual(a.calls, [['mode', 0, true], ['mode', 6, true], ['stop']]);
 assert.equal(a.timers.size, 0);
 
 const b = create(true, true);
-b.byTag(734933)[1].on = true; [...b.timers.values()][0]();
-assert.deepEqual(b.calls, [['set', true], ['stop']]);
+b.byTag(734940)[1].on = true; [...b.timers.values()][0]();
+assert.deepEqual(b.calls, [['mode', 0, true], ['stop']]);
 assert.equal(b.timers.size, 0);
 assert.equal(b.nodes.get(b.win).children.length, 0);
 console.log('Menu logic passed with a mock UI and mock backend; no device verification.');

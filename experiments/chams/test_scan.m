@@ -18,8 +18,6 @@ CYIL2CPPCallStatus cy_il2cpp_call_managed(RemoteCallSession *session,uint64_t in
     if(method==2){assert(!instance && n==1 && args[0].reference==100);h=200;}
     else if(method==3){assert(!n && (instance==200||instance==300));h=43;}
     else if(method==4){assert(n==1 && *(const int32_t *)args[0].bytes==0);h=instance==200?10:11;}
-    else if(method==5){assert(instance==10);h=13;}
-    else if(method==6){assert(instance==13);h=42;}
     else if(method==7){assert(instance==10);h=41;}
     else if(method==8){assert(instance==11||instance==12);h=instance==11?50:51;}
     else if(method==9){assert(instance==11);h=12;}
@@ -37,9 +35,9 @@ CYMaterialResult cy_material_consider(CYMaterialState *state,const CYMaterialOpe
 }
 int main(void){
     CYIL2CPPMetadata m={0};m.session=(RemoteCallSession *)1;m.generation=7;
-    CYChamsUnityBindings b={0};b.skinned_renderer_class=1;b.resources_find_all=2;b.array_get_length=3;b.array_get_value=4;
-    b.skinned_get_mesh=5;b.mesh_get_submesh_count=6;b.object_get_instance_id=7;b.object_get_name=8;b.material_get_shader=9;
-    CYChamsPasses p={30,31};CYChamsAdapter a={&m,&b,&p};CYMaterialState state={0};state.generation=7;
+    CYChamsUnityBindings b={0};b.renderer_class=1;b.resources_find_all=2;b.array_get_length=3;b.array_get_value=4;
+    b.object_get_instance_id=7;b.object_get_name=8;b.material_get_shader=9;
+    CYChamsPasses p={.behind=30,.visible=31};CYChamsAdapter a={&m,&b,&p};CYMaterialState state={0};state.generation=7;
     assert(cy_chams_scan_once(&a,&state) && accepted==1 && freed>0);
     puts("Renderer discovery and material identification passed (mock Unity calls).");return 0;
 }
