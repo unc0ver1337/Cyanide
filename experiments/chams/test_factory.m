@@ -47,8 +47,7 @@ int main(void) {
     CYMaterialState state; cy_material_state_init(&state,1); CYChamsStyle s=state.style;
     CYChamsPasses passes={0};
     assert(cy_chams_make_passes(&c,&b,&s,&passes));
-    printf("factory counters red=%d green=%d other=%d always=%d visible=%d q0=%d q1=%d qx=%d releases=%d\n",red,green,other,always,visible,queue3100,queue3101,otherQueue,releases);
-    assert(passes.behind && passes.visible && red==1 && green==1 && other==6 && always==6 && visible==2 && queue3100==1 && queue3101==1 && otherQueue==6 && releases==4);
+    assert(passes.behind && passes.visible && passes.mode[5] && red==1 && green==1 && other==6 && always==6 && visible==2 && queue3100==1 && queue3101==1 && otherQueue==6 && releases==4);
     assert(cy_chams_destroy_passes(&c,&b,&passes) && !passes.behind && !passes.visible && destroys==8 && releases==12);
     puts("Material factory sequence passed (mock Unity calls)."); return 0;
 }

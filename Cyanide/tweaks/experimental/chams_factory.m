@@ -68,6 +68,11 @@ bool cy_chams_make_passes(CYIL2CPPMetadata *c, const CYChamsUnityBindings *b,
         !create_material(c,b,shader,&out->visible) ||
         !configure(c,b,out->behind,colorName,depthName,style->red,style->behind_ztest,style->behind_queue) ||
         !configure(c,b,out->visible,colorName,depthName,style->green,style->visible_ztest,style->visible_queue)) goto done;
+    for (unsigned i=0;i<CY_CHAMS_EXTRA_PASS_COUNT;i++) {
+        if (!create_material(c,b,shader,&out->mode[i]) ||
+            !configure(c,b,out->mode[i],colorName,depthName,style->mode_color[i],
+                       style->mode_ztest[i],style->mode_queue[i])) goto done;
+    }
     ok = true;
 done:
     if (!release_handle(c,&shader) || !release_handle(c,&depthName) ||
@@ -77,8 +82,9 @@ done:
 bool cy_chams_destroy_passes(CYIL2CPPMetadata *c, const CYChamsUnityBindings *b,
                              CYChamsPasses *passes) {
     if (!c || c->poisoned || !b || !b->object_destroy || !passes) return false;
-    uint64_t *handles[] = {&passes->visible, &passes->behind};
-    for (unsigned i=0;i<2;i++) {
+    uint64_t *handles[CY_CHAMS_EXTRA_PASS_COUNT+2]={&passes->visible,&passes->behind};
+    for (unsigned i=0;i<CY_CHAMS_EXTRA_PASS_COUNT;i++) handles[i+2]=&passes->mode[i];
+    for (unsigned i=0;i<CY_CHAMS_EXTRA_PASS_COUNT+2;i++) {
         if (!*handles[i]) continue;
         uint64_t object=0; CYIL2CPPRootedResult result={0};
         if (!target(c,*handles[i],&object)) return false;
