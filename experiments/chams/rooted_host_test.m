@@ -86,6 +86,9 @@ int main(void) {
         assert(allocations == frees);
         fakeException = 0x44;
         assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0, 0x33, &out) == CY_IL2CPP_CALL_COMPLETED);
+        fprintf(stderr, "null case: object=%llx handle=%llx exception=%llx\n",
+                (unsigned long long)out.object, (unsigned long long)out.gc_handle,
+                (unsigned long long)out.exception);
         assert(out.object == 0 && out.gc_handle == UINT64_C(0x123456789b) && out.exception == 0x44);
         assert(allocations == frees);
         timeoutAfterDispatch = true;
