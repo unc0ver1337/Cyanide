@@ -3718,6 +3718,14 @@ static uint64_t settings_springboard_proc_by_bundle(void)
 {
     Class predicateClass=NSClassFromString(@"RBSProcessPredicate");
     Class handleClass=NSClassFromString(@"RBSProcessHandle");
+    if (!predicateClass || !handleClass) {
+        static void *runningBoardServices=NULL;
+        if (!runningBoardServices)
+            runningBoardServices=dlopen("/System/Library/PrivateFrameworks/RunningBoardServices.framework/RunningBoardServices",
+                                       RTLD_NOW|RTLD_LOCAL);
+        predicateClass=NSClassFromString(@"RBSProcessPredicate");
+        handleClass=NSClassFromString(@"RBSProcessHandle");
+    }
     SEL predicateSel=NSSelectorFromString(@"predicateMatchingBundleIdentifier:");
     SEL handleSel=NSSelectorFromString(@"handleForPredicate:error:");
     SEL pidSel=NSSelectorFromString(@"rbs_pid");
