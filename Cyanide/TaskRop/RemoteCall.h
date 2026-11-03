@@ -210,6 +210,13 @@ void remote_call_guard_release_external(const char *what);
               useMigFilterBypass:(BOOL)useMigFilterBypass
          firstExceptionTimeoutMS:(int)firstExceptionTimeoutMS
               originalThreadOnly:(BOOL)originalThreadOnly;
+// Reject a process-name match whose PID differs before any thread hijack.
+// Caller must still verify bundle identity and liveness; a PID can be reused.
+- (instancetype)initWithProcess:(NSString *)process
+              useMigFilterBypass:(BOOL)useMigFilterBypass
+         firstExceptionTimeoutMS:(int)firstExceptionTimeoutMS
+              originalThreadOnly:(BOOL)originalThreadOnly
+                     expectedPID:(int)expectedPID;
 - (uint64_t)doRemoteCallStableWithTimeout:(int)timeout
                              functionName:(const char *)name
                                        x0:(uint64_t)x0

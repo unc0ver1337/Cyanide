@@ -742,6 +742,7 @@ typedef struct RemoteCallState {
                                // never-resumed synthetic via the temp channel
     uint64_t trojanThreadAddr;
     int pid;
+    int expectedPID;
     bool success;
     NSMutableArray<NSNumber *> *threadList;
     uint64_t trojanMem;
@@ -4908,6 +4909,12 @@ static int init_remote_call_internal(const char* process, bool useMigFilterBypas
         return -1;
     }
     uint32_t targetPid = kread32(procAddr + off_proc_p_pid);
+    int expectedPID = remote_call_current_state()->expectedPID;
+    if (expectedPID > 0 && targetPid != (uint32_t)expectedPID) {
+        printf("[RemoteCall] refusing %s: expected pid %d, found %u\n", process, expectedPID, targetPid);
+        remote_call_note_init_failure(RemoteCallInitFailureProcessMissing, targetPid);
+        return -1;
+    }
     printf("[RemoteCall] Found %s in kernel (pid=%u) — preparing EXC_GUARD thread hijack.\n", process, targetPid);
     RC_DEBUG("[%s:%d] process: %s, pid: %u\n", __FUNCTION__, __LINE__, process, targetPid);
     g_RC_taskAddr = proc_task(procAddr);
@@ -6048,6 +6055,16 @@ int init_remote_call_original_thread_only_with_first_exception_timeout(const cha
          firstExceptionTimeoutMS:(int)firstExceptionTimeoutMS
               originalThreadOnly:(BOOL)originalThreadOnly
 {
+    return [self initWithProcess:process useMigFilterBypass:useMigFilterBypass
+         firstExceptionTimeoutMS:firstExceptionTimeoutMS originalThreadOnly:originalThreadOnly expectedPID:0];
+}
+
+- (instancetype)initWithProcess:(NSString *)process
+              useMigFilterBypass:(BOOL)useMigFilterBypass
+         firstExceptionTimeoutMS:(int)firstExceptionTimeoutMS
+              originalThreadOnly:(BOOL)originalThreadOnly
+                     expectedPID:(int)expectedPID
+{
     self = [super init];
     if (!self)
         return nil;
@@ -6058,6 +6075,7 @@ int init_remote_call_original_thread_only_with_first_exception_timeout(const cha
     _state.firstExceptionTimeoutMS = firstExceptionTimeoutMS > 0 ? firstExceptionTimeoutMS : 120000;
     _state.stableExceptionTimeoutFloorMS = 10000;
     _state.originalThreadOnly = originalThreadOnly;
+    _state.expectedPID = expectedPID > 0 ? expectedPID : 0;
 
     const char *processName = process.UTF8String;
     if (!processName)
