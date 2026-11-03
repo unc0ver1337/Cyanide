@@ -2,6 +2,7 @@
 #define remote_objc_h
 #import "remote_syntax_stubs.h"
 #import "../../Cyanide/tweaks/experimental/chams_factory.h"
+#undef CY_CHAMS_FACTORY_H
 #import "../../Cyanide/tweaks/experimental/chams_factory.m"
 #include <assert.h>
 #include <stdio.h>
