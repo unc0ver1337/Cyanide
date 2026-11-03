@@ -1,0 +1,36 @@
+#import "il2cpp_symbols.h"
+#import "../remote_objc.h"
+#include <dlfcn.h>
+#include <stddef.h>
+#include <string.h>
+
+typedef struct { const char *name; size_t offset; } SymbolDescriptor;
+#define CY_SYMBOL(member) {"il2cpp_" #member, offsetof(CYIL2CPPSymbols, member)}
+static const SymbolDescriptor kSymbols[] = {
+    CY_SYMBOL(domain_get), CY_SYMBOL(domain_assembly_open), CY_SYMBOL(assembly_get_image),
+    CY_SYMBOL(class_from_name), CY_SYMBOL(class_get_method_from_name), CY_SYMBOL(class_get_type),
+    CY_SYMBOL(type_get_object), CY_SYMBOL(runtime_invoke), CY_SYMBOL(string_new),
+    CY_SYMBOL(object_unbox), CY_SYMBOL(gchandle_new), CY_SYMBOL(gchandle_get_target),
+    CY_SYMBOL(gchandle_free)
+};
+#undef CY_SYMBOL
+
+bool cy_il2cpp_resolve_symbols(RemoteCallSession *session, CYIL2CPPSymbols *out) {
+    if (!out) return false;
+    memset(out, 0, sizeof(*out));
+    if (!session) return false;
+    CYIL2CPPSymbols resolved = {0};
+    for (size_t i = 0; i < sizeof(kSymbols) / sizeof(kSymbols[0]); ++i) {
+        uint64_t name = r_session_alloc_str(session, kSymbols[i].name);
+        if (!name) return false;
+        uint64_t address = r_session_dlsym_call(session, 100, "dlsym",
+                                                (uint64_t)(intptr_t)RTLD_DEFAULT, name,
+                                                0, 0, 0, 0, 0, 0);
+        bool completed = r_last_call_ok();
+        r_session_free(session, name);
+        if (!completed || !address) return false;
+        *(uint64_t *)((char *)&resolved + kSymbols[i].offset) = address;
+    }
+    *out = resolved;
+    return true;
+}
