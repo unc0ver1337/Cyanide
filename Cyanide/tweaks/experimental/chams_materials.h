@@ -10,8 +10,16 @@
 // first material. It is never reused across game-process generations.
 typedef enum { CY_CHANGE_OK, CY_CHANGE_FAILED, CY_CHANGE_UNKNOWN } CYChange;
 typedef struct {
+    float red[4];
+    float green[4];
+    // Unity CompareFunction: Always = 8; LessEqual = 4.
+    int behind_ztest, visible_ztest;
+    int behind_queue, visible_queue;
+} CYChamsStyle;
+typedef struct {
     void *context;
-    CYChange (*append_overlay)(void *, uint64_t renderer, uint64_t snapshot);
+    CYChange (*append_overlay)(void *, uint64_t renderer, uint64_t snapshot,
+                               const CYChamsStyle *style);
     CYChange (*restore)(void *, uint64_t renderer, uint64_t snapshot);
     void (*drop)(void *, uint64_t renderer, uint64_t snapshot, bool process_alive);
 } CYMaterialOperations;
@@ -23,6 +31,7 @@ typedef struct {
     CYMaterialEntry entries[CY_MAX_CHAMS_RENDERERS];
     size_t count;
     bool uncertain;
+    CYChamsStyle style;
 } CYMaterialState;
 
 typedef enum { CY_MATERIAL_IGNORED, CY_MATERIAL_APPLIED, CY_MATERIAL_FAILED,

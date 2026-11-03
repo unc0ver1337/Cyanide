@@ -3,6 +3,7 @@
 **Incomplete.** This branch does not provide a chams tweak, attach to the game,
 or expose a new QuickLoader API. Do not install it as a working chams build.
 
+The intended effect is red behind walls and green when visible, including hands.
 The material filter is derived from observed 1.1.0 game assets and includes
 first-person hands as well as third-person models. It can miss other skins. Symbol resolution is
 designed to use IL2CPP exports instead of hard-coded game offsets. The

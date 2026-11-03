@@ -6,6 +6,12 @@ void cy_material_state_init(CYMaterialState *state, uint64_t generation) {
     if (!state) return;
     memset(state, 0, sizeof(*state));
     state->generation = generation;
+    state->style.red[0] = state->style.red[3] = 1.0f;
+    state->style.green[1] = state->style.green[3] = 1.0f;
+    state->style.behind_ztest = 8;
+    state->style.visible_ztest = 4;
+    state->style.behind_queue = 3100;
+    state->style.visible_queue = 3101;
 }
 
 CYMaterialResult cy_material_consider(CYMaterialState *s, const CYMaterialOperations *o,
@@ -34,7 +40,7 @@ CYMaterialResult cy_material_consider(CYMaterialState *s, const CYMaterialOperat
         o->drop(o->context, renderer, snapshot, true);
         return CY_MATERIAL_LIMIT;
     }
-    CYChange result = o->append_overlay(o->context, renderer, snapshot);
+    CYChange result = o->append_overlay(o->context, renderer, snapshot, &s->style);
     if (result == CY_CHANGE_FAILED) {
         o->drop(o->context, renderer, snapshot, true);
         return CY_MATERIAL_FAILED;

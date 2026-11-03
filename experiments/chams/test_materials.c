@@ -3,8 +3,13 @@
 #include <stdio.h>
 
 typedef struct { int applies, restores, live_drops, dead_drops; CYChange next; } Fake;
-static CYChange apply(void *ctx, uint64_t r, uint64_t snap) {
-    Fake *f=ctx; assert(r && snap); f->applies++; return f->next;
+static CYChange apply(void *ctx, uint64_t r, uint64_t snap, const CYChamsStyle *s) {
+    Fake *f=ctx; assert(r && snap && s);
+    assert(s->red[0]==1 && s->red[1]==0 && s->red[2]==0 && s->red[3]==1);
+    assert(s->green[0]==0 && s->green[1]==1 && s->green[2]==0 && s->green[3]==1);
+    assert(s->behind_ztest==8 && s->visible_ztest==4);
+    assert(s->behind_queue < s->visible_queue);
+    f->applies++; return f->next;
 }
 static CYChange restore(void *ctx, uint64_t r, uint64_t snap) {
     Fake *f=ctx; assert(r && snap); f->restores++; return f->next;
