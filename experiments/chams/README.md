@@ -16,7 +16,12 @@ availability and visual behavior outside that mode have not been verified. The
 game's regular character shaders do not expose a configurable depth test.
 OutlineHW is an outline shader, and full model fill has not been established.
 
-The controller, verified game session, runtime object/material discovery,
-reversible material changes, SpringBoard controls, teardown and device testing
-are still required. The host test exercises only the calling convention; it
-does not exercise Cyanide's RemoteCall or the game.
+The experimental menu implements the requested checkbox, center switch and
+Exit behavior against a mock backend. It intentionally refuses to start when
+the native bridge is missing. It uses a SpringBoard keyWindow, so visibility
+and touch handling above the game are not established.
+
+The game adapter, verified game session, runtime object/material discovery,
+real reversible material changes, floating SpringBoard window, teardown and
+device testing are still required. The host test exercises only the calling
+convention; it does not exercise Cyanide's RemoteCall or the game.
