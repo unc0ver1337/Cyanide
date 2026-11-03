@@ -9,6 +9,7 @@
 
 static uint64_t nextHandle=100;
 static int red, green, other, always, visible, queue3100, queue3101, otherQueue, destroys, releases;
+static int stringCalls, materialCreates;
 bool cy_metadata_handle_target(CYIL2CPPMetadata *c, uint64_t handle, uint64_t *object) {
     (void)c; *object=handle; return handle != 0;
 }
@@ -16,10 +17,10 @@ bool cy_metadata_handle_free(CYIL2CPPMetadata *c, uint64_t handle) {
     (void)c; assert(handle); releases++; return true;
 }
 CYIL2CPPCallStatus cy_chams_new_string(CYIL2CPPMetadata *c, const char *s, CYIL2CPPRootedResult *out) {
-    (void)c; assert(s); ++nextHandle; *out=(CYIL2CPPRootedResult){nextHandle,nextHandle,0}; return CY_IL2CPP_CALL_COMPLETED;
+    (void)c; assert(s); stringCalls++; ++nextHandle; *out=(CYIL2CPPRootedResult){nextHandle,nextHandle,0}; return CY_IL2CPP_CALL_COMPLETED;
 }
 CYIL2CPPCallStatus cy_chams_new_object(CYIL2CPPMetadata *c, uint64_t klass, CYIL2CPPRootedResult *out) {
-    (void)c; assert(klass==1); ++nextHandle; *out=(CYIL2CPPRootedResult){nextHandle,nextHandle,0}; return CY_IL2CPP_CALL_COMPLETED;
+    (void)c; assert(klass==1); materialCreates++; ++nextHandle; *out=(CYIL2CPPRootedResult){nextHandle,nextHandle,0}; return CY_IL2CPP_CALL_COMPLETED;
 }
 CYIL2CPPCallStatus cy_il2cpp_call_managed(RemoteCallSession *session, uint64_t invoke, uint64_t gc,
     uint64_t method, uint64_t instance, const CYIL2CPPArgument *args, size_t count,
@@ -31,7 +32,7 @@ CYIL2CPPCallStatus cy_il2cpp_call_managed(RemoteCallSession *session, uint64_t i
         assert(instance && count==2 && args[1].size==16);
         const float *v=args[1].bytes; if (v[0]==1 && v[1]==0) red++; else if (v[0]==0 && v[1]==1) green++; else other++;
     } else if (method==5) {
-        assert(instance && count==2 && args[1].size==sizeof(int)); int v=*(const int *)args[1].bytes;
+        assert(instance && count==2 && args[0].reference && args[1].size==sizeof(int)); int v=*(const int *)args[1].bytes;
         if (v==8) always++; else if (v==4) visible++; else assert(0);
     } else if (method==6) {
         assert(instance && count==1); int v=*(const int *)args[0].bytes;
