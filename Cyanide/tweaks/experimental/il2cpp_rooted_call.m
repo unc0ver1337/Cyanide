@@ -89,15 +89,14 @@ static bool cleanup(RootCall *c) {
     return true;
 }
 
-CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
-                                                uint64_t runtime_invoke,
-                                                uint64_t gc_handle_new,
-                                                uint64_t method,
-                                                uint64_t instance,
-                                                uint64_t parameters,
-                                                CYIL2CPPRootedResult *out) {
+static CYIL2CPPCallStatus invoke_rooted(RemoteCallSession *session,
+                                        uint64_t function, uint64_t gc_handle_new,
+                                        uint64_t first, uint64_t second, uint64_t third,
+                                        bool managed, unsigned argument_count,
+                                        CYIL2CPPRootedResult *out) {
     if (out) memset(out, 0, sizeof(*out));
-    if (!session || !runtime_invoke || !gc_handle_new || !method || !out)
+    if (!session || !function || !gc_handle_new || !first || !out ||
+        (!managed && (argument_count < 1 || argument_count > 2)))
         return CY_IL2CPP_CALL_FAILED;
     RootCall c = {.session = session};
     uint64_t inner = 0, root = 0, sequence = 0;
@@ -112,11 +111,14 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
     if (!write_bytes(&c, objectSlot, &zero, sizeof(zero)) ||
         !write_bytes(&c, handleSlot, &zero, sizeof(zero)) ||
         !write_bytes(&c, exceptionSlot, &zero, sizeof(zero))) goto done;
-    inner = create_invocation(&c, "Q^v^v^v^v");
+    inner = create_invocation(&c, managed ? "Q^v^v^v^v" :
+                              argument_count == 1 ? "Q^v" : "Q^vQ");
     root = create_invocation(&c, "^v^vB");
-    if (!inner || !root || !set_arg(&c, inner, 0, method) ||
-        !set_arg(&c, inner, 1, instance) || !set_arg(&c, inner, 2, parameters) ||
-        !set_arg(&c, inner, 3, exceptionSlot) || !set_arg(&c, root, 1, 1)) goto done;
+    if (!inner || !root || !set_arg(&c, inner, 0, first) ||
+        ((managed || argument_count == 2) && !set_arg(&c, inner, 1, second)) ||
+        (managed && (!set_arg(&c, inner, 2, third) ||
+                     !set_arg(&c, inner, 3, exceptionSlot))) ||
+        !set_arg(&c, root, 1, 1)) goto done;
     uint64_t arrayClass = r_session_class(session, "NSMutableArray");
     if (!arrayClass) { c.uncertain = true; goto done; }
     uint64_t array = send(&c, arrayClass, "alloc", 0, 0);
@@ -124,7 +126,7 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
     if (!sequence || c.uncertain || c.object_count >= 32) goto done;
     c.objects[c.object_count++] = sequence; // alloc/init returns an owned object.
     struct { uint64_t target; const char *selector; uint64_t a, b; unsigned n; } steps[] = {
-        {inner, "invokeUsingIMP:", runtime_invoke, 0, 1},
+        {inner, "invokeUsingIMP:", function, 0, 1},
         {inner, "getReturnValue:", objectSlot, 0, 1},
         {root, "setArgument:atIndex:", objectSlot, 0, 2},
         {root, "invokeUsingIMP:", gc_handle_new, 0, 1},
@@ -155,4 +157,20 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
 done:
     if (!cleanup(&c)) return CY_IL2CPP_CALL_INDETERMINATE;
     return status;
+}
+
+CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
+                                                uint64_t runtime_invoke, uint64_t gc_handle_new,
+                                                uint64_t method, uint64_t instance, uint64_t parameters,
+                                                CYIL2CPPRootedResult *out) {
+    return invoke_rooted(session, runtime_invoke, gc_handle_new, method, instance,
+                         parameters, true, 4, out);
+}
+
+CYIL2CPPCallStatus cy_il2cpp_alloc_rooted_main(RemoteCallSession *session,
+                                               uint64_t function, uint64_t gc_handle_new,
+                                               uint64_t first, uint64_t second,
+                                               unsigned argument_count, CYIL2CPPRootedResult *out) {
+    return invoke_rooted(session, function, gc_handle_new, first, second, 0,
+                         false, argument_count, out);
 }

@@ -20,4 +20,11 @@ CYIL2CPPCallStatus cy_il2cpp_invoke_rooted_main(RemoteCallSession *session,
                                                 uint64_t instance,
                                                 uint64_t parameters,
                                                 CYIL2CPPRootedResult *out);
+// For IL2CPP allocation exports such as string_new, object_new and array_new.
+// Arguments are raw native values; returned object is pinned immediately.
+CYIL2CPPCallStatus cy_il2cpp_alloc_rooted_main(RemoteCallSession *session,
+                                               uint64_t function, uint64_t gc_handle_new,
+                                               uint64_t first, uint64_t second,
+                                               unsigned argument_count,
+                                               CYIL2CPPRootedResult *out);
 #endif

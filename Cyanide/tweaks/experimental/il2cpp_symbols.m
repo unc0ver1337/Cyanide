@@ -9,7 +9,7 @@ static const SymbolDescriptor kSymbols[] = {
     CY_SYMBOL(domain_get), CY_SYMBOL(domain_assembly_open), CY_SYMBOL(assembly_get_image),
     CY_SYMBOL(class_from_name), CY_SYMBOL(class_get_method_from_name), CY_SYMBOL(class_get_type),
     CY_SYMBOL(type_get_object), CY_SYMBOL(runtime_invoke), CY_SYMBOL(string_new),
-    CY_SYMBOL(object_unbox), CY_SYMBOL(gchandle_new), CY_SYMBOL(gchandle_get_target),
+    CY_SYMBOL(object_new), CY_SYMBOL(object_unbox), CY_SYMBOL(gchandle_new), CY_SYMBOL(gchandle_get_target),
     CY_SYMBOL(gchandle_free), CY_SYMBOL(thread_current), CY_SYMBOL(thread_attach),
     CY_SYMBOL(thread_detach), CY_SYMBOL(class_get_methods), CY_SYMBOL(method_get_name),
     CY_SYMBOL(method_get_param_count), CY_SYMBOL(method_get_param), CY_SYMBOL(method_get_return_type), CY_SYMBOL(type_get_name),

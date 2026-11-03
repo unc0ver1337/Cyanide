@@ -7,7 +7,7 @@
 typedef struct {
     uint64_t domain_get, domain_assembly_open, assembly_get_image;
     uint64_t class_from_name, class_get_method_from_name, class_get_type;
-    uint64_t type_get_object, runtime_invoke, string_new, object_unbox;
+    uint64_t type_get_object, runtime_invoke, string_new, object_new, object_unbox;
     uint64_t gchandle_new, gchandle_get_target, gchandle_free;
     uint64_t thread_current, thread_attach, thread_detach;
     uint64_t class_get_methods, method_get_name, method_get_param_count;

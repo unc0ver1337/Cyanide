@@ -138,6 +138,12 @@ static uintptr_t fake_root(uintptr_t object, bool pinned) {
     assert([NSThread isMainThread] && pinned);
     return object ? UINT64_C(0x123456789a) : UINT64_C(0x123456789b);
 }
+static uintptr_t fake_alloc_one(uintptr_t klass) {
+    assert([NSThread isMainThread] && klass == 0x55); return 0x22;
+}
+static uintptr_t fake_alloc_two(uintptr_t klass, uintptr_t size) {
+    assert([NSThread isMainThread] && klass == 0x55 && size == 3); return 0x22;
+}
 int main(void) {
     @autoreleasepool {
         TestSession *local = [TestSession new];
@@ -147,6 +153,11 @@ int main(void) {
         assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0x22, 0x33, &out) == CY_IL2CPP_CALL_COMPLETED);
         assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && out.exception == 0);
         assert(allocations == frees);
+        assert(cy_il2cpp_alloc_rooted_main(session, PTR(fake_alloc_one), root, 0x55, 0, 1, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && out.exception == 0);
+        assert(cy_il2cpp_alloc_rooted_main(session, PTR(fake_alloc_two), root, 0x55, 3, 2, &out) == CY_IL2CPP_CALL_COMPLETED);
+        assert(out.object == 0x22 && out.gc_handle == UINT64_C(0x123456789a) && allocations == frees);
+        assert(cy_il2cpp_alloc_rooted_main(session, PTR(fake_alloc_one), root, 0x55, 0, 3, &out) == CY_IL2CPP_CALL_FAILED);
         fakeException = 0x44;
         assert(cy_il2cpp_invoke_rooted_main(session, invoke, root, 0x11, 0, 0x33, &out) == CY_IL2CPP_CALL_COMPLETED);
         assert(out.object == 0 && out.gc_handle == 0 && out.exception == 0x44);
