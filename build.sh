@@ -16,6 +16,13 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# WIP branch: exercise the local calling convention before the iOS build.
+if [ "${CI:-}" = "true" ]; then
+    clang -Wall -Wextra -Werror -fobjc-arc -framework Foundation \
+        "$ROOT/experiments/chams/invocation_probe.m" -o "$RUNNER_TEMP/chams-invocation-probe"
+    "$RUNNER_TEMP/chams-invocation-probe"
+fi
+
 export SCHEME="${SCHEME:-Cyanide}"
 if [ "$SCHEME" = "CyanideVPhone" ]; then
     export CONFIG="${CONFIG:-VPhone Debug}"
